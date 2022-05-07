@@ -2,6 +2,7 @@
 #define _BPLUS_TREE_H
 
 #include "list.h"
+#include "utils.h"
 #define MIN_CACHE_NUM 5
 
 typedef int key_t;
