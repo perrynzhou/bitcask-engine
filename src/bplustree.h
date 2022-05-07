@@ -5,7 +5,7 @@
 #include "utils.h"
 #define MIN_CACHE_NUM 5
 
-typedef uint64_t key_t;
+typedef int key_t;
 
 typedef struct bplus_tree
 {
