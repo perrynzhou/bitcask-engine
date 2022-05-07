@@ -1152,8 +1152,6 @@ void bplus_tree_deinit(struct bplus_tree *tree)
         free(tree);
 }
 
-#ifdef _BPLUS_TREE_DEBUG
-
 #define MAX_LEVEL 10
 
 struct node_backlog {
@@ -1247,5 +1245,3 @@ void bplus_tree_dump(struct bplus_tree *tree)
                 }
         }
 }
-
-#endif

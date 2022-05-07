@@ -215,6 +215,7 @@ int main(void)
                 tree = bplus_tree_init(config.filename, config.block_size);
         }
         command_process(tree);
+        bplus_tree_dump(tree);
         bplus_tree_deinit(tree);
 
         return 0;

@@ -22,12 +22,6 @@ static inline void __list_add(struct list_head *link, struct list_head *prev, st
         prev->next = link;
 }
 
-static inline void __list_del(struct list_head *prev, struct list_head *next)
-{
-        prev->next = next;
-        next->prev = prev;
-}
-
 
 void list_init(struct list_head *link)
 {
