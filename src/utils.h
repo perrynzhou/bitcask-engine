@@ -43,4 +43,5 @@ typedef int (*hashmap_traverse_cb)(void *,void *);
 typedef int (*hashmap_key_compare_cb)(void *,void *,size_t);
 
 typedef void (*hashmap_free_cb)(void *);
+typedef int (*key_compare)(void *,void *,size_t);
 #endif
