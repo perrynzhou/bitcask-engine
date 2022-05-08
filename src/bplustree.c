@@ -9,7 +9,8 @@
 #include <sys/stat.h>
 
 #include "bplustree.h"
-
+#include "list.h"
+#include "log.h"
 typedef struct free_block
 {
         struct list_head link;
@@ -1230,26 +1231,22 @@ static inline ssize_t offset_store(int fd, off_t offset)
         return write(fd, buf, sizeof(buf));
 }
 
-bplus_tree *bplus_tree_init(char *filename, int block_size)
+bplus_tree *bplus_tree_init(char *name,int fd, int block_size)
 {
         int i;
         bplus_node node;
 
-        if (strlen(filename) >= 1024)
-        {
-                fprintf(stderr, "Index file name too long!\n");
-                return NULL;
-        }
+     
 
         if ((block_size & (block_size - 1)) != 0)
         {
-                fprintf(stderr, "Block size must be pow of 2!\n");
+                logi( "Block size must be pow of 2!\n");
                 return NULL;
         }
 
         if (block_size < (int)sizeof(node))
         {
-                fprintf(stderr, "block size is too small for one node!\n");
+                logi( "block size is too small for one node!\n");
                 return NULL;
         }
 
@@ -1258,17 +1255,15 @@ bplus_tree *bplus_tree_init(char *filename, int block_size)
         _max_entries = (block_size - sizeof(node)) / (sizeof(key_t) + sizeof(long));
         if (_max_order <= 2)
         {
-                fprintf(stderr, "block size is too small for one node!\n");
+                logi( "block size is too small for one node!\n");
                 return NULL;
         }
 
         bplus_tree *tree = (bplus_tree *)calloc(1, sizeof(*tree));
         assert(tree != NULL);
+        tree->name = strdup(name);
+        tree->fd = fd;
         list_init(&tree->free_blocks);
-        strcpy(tree->filename, filename);
-
-        /* load index boot file */
-        int fd = open(strcat(tree->filename, ".boot"), O_RDWR, 0644);
         if (fd >= 0)
         {
                 tree->root = offset_load(fd);
@@ -1298,17 +1293,13 @@ bplus_tree *bplus_tree_init(char *filename, int block_size)
 
         /* init free node caches */
         tree->caches = (char *)malloc(_block_size * MIN_CACHE_NUM);
-
-        /* open data file */
-        tree->fd = bplus_open(filename);
         assert(tree->fd >= 0);
         return tree;
 }
 
 void bplus_tree_deinit(bplus_tree *tree)
 {
-        int fd = open(tree->filename, O_CREAT | O_RDWR, 0644);
-        assert(fd >= 0);
+        int fd = tree->fd;
         assert(offset_store(fd, tree->root) == ADDR_STR_WIDTH);
         assert(offset_store(fd, _block_size) == ADDR_STR_WIDTH);
         assert(offset_store(fd, tree->file_size) == ADDR_STR_WIDTH);
@@ -1323,7 +1314,6 @@ void bplus_tree_deinit(bplus_tree *tree)
                 free(block);
         }
 
-        bplus_close(tree->fd);
         free(tree->caches);
         free(tree);
 }

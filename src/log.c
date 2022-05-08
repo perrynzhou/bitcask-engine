@@ -244,7 +244,6 @@ int log_print(int lvl, const char *file, int line, const char *func, const char 
     va_end(ap);
     if (n < 0)
     {
-        fprintf(stderr, "vsnprintf errno:%d\n", errno);
         return -1;
     }
     ret = log_write(lvl, file, line, func, buf);

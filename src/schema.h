@@ -8,6 +8,7 @@
 #ifndef _SCHEMA_H
 #define _SCHEMA_H
 #include "utils.h"
+#include "bplustree.h"
 #include <stdatomic.h>
 typedef struct schema
 {
@@ -15,10 +16,11 @@ typedef struct schema
   int fd;
   _Atomic(uint64_t) bytes;
   _Atomic(uint64_t) obj_count;
+  bplus_tree *data;
   
 } schema;
 schema *schema_alloc(const char *name);
-void schema_destroy(schema *m);
+void schema_destroy(schema *m,bool is_drop);
 inline int schema_modify(schema *m, uint64_t bytes)
 {
   if (m)

@@ -12,4 +12,4 @@ OBJDIR = .
 all: $(TARGET) 
 clean:
 	rm -rf *.o
-	rm -rf bplustree_demo
+	rm -rf bplustree_demo context_demo

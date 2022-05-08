@@ -3,90 +3,7 @@
 #include <string.h>
 
 #include "bplustree.h"
-
-struct bplus_tree_config {
-        char filename[1024];
-        int block_size;
-}; 
-
-static void stdin_flush(void)
-{
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF) {
-                continue;
-        }
-}
-
-static int bplus_tree_setting(struct bplus_tree_config *config)
-{
-        int i, size, ret = 0, again = 1;
-
-        printf("\n-- B+tree setting...\n");
-        while (again) {
-                printf("Set data index file name (e.g. /tmp/data.index): ");
-                switch (i = getchar()) {
-                case EOF:
-                        printf("\n");
-                case 'q':
-                        return -1;
-                case '\n':
-                        strcpy(config->filename, "/tmp/data.index");
-                        again = 0;
-                        break;
-                default:
-                        ungetc(i, stdin);
-                        ret = fscanf(stdin, "%s", config->filename);
-                        if (!ret || getchar() != '\n') {
-                                stdin_flush();
-                                again = 1;
-                        } else {
-                                again = 0;
-                        }
-                        break;
-                }
-        }
-
-        again = 1;
-        while (again) {
-                printf("Set index file block size (bytes, power of 2, e.g. 4096): ");
-                switch (i = getchar()) {
-                case EOF:
-                        printf("\n");
-                case 'q':
-                        return -1;
-                case '\n':
-                        config->block_size = 4096;
-                        again = 0;
-                        break;
-                default:
-                        ungetc(i, stdin);
-                        ret = fscanf(stdin, "%d", &size);
-                        if (!ret || getchar() != '\n') {
-                                stdin_flush();
-                                again = 1;
-                        } else if (size <= 0 || (size & (size - 1)) != 0) {
-                		fprintf(stderr, "Block size must be positive and pow of 2!\n");
-                                again = 1;
-                        } else if (size <= 0 || (size & (size - 1)) != 0) {
-                                again = 1;
-                        } else {
-                                int order = (size - sizeof(struct bplus_node)) / (sizeof(key_t) + sizeof(off_t));
-                                if (size < (int) sizeof(struct bplus_node) || order <= 2) {
-                                        fprintf(stderr, "block size is too small for one node!\n");
-                                        again = 1;
-                                } else {
-                                        config->block_size = size;
-                                        again = 0;
-                                }
-                        }
-                        break;
-                }
-        }
-
-        return ret;
-}
-
-static void _proc(struct bplus_tree *tree, char op, int n)
+static void _proc(bplus_tree *tree, char op, int n)
 {
         switch (op) {
                 case 'i':
@@ -103,7 +20,7 @@ static void _proc(struct bplus_tree *tree, char op, int n)
         }       
 }
 
-static int number_process(struct bplus_tree *tree, char op)
+static int number_process(bplus_tree *tree, char op)
 {
         int c, n = 0;
         int start = 0, end = 0;
@@ -174,7 +91,7 @@ static void command_tips(void)
         printf("q: quit.\n");
 }
 
-static void command_process(struct bplus_tree *tree)
+static void command_process(bplus_tree *tree)
 {
         int c;
         printf("Please input command (Type 'h' for help): ");
@@ -206,13 +123,10 @@ static void command_process(struct bplus_tree *tree)
 
 int main(void)
 {
-        struct bplus_tree_config config;
-        struct bplus_tree *tree = NULL;
+        bplus_tree *tree = NULL;
         while (tree == NULL) {
-                if (bplus_tree_setting(&config) < 0) {
-                        return 0;
-                }
-                tree = bplus_tree_init(config.filename, config.block_size);
+                int fd =open("/tmp/btree", O_RDWR | O_CREAT);
+                tree = bplus_tree_init("/tmp/btree",fd,4096);
         }
         command_process(tree);
         bplus_tree_dump(tree);

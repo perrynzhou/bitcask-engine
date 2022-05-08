@@ -24,13 +24,13 @@
 	for (pos = (head)->next, n = pos->next; pos != (head); \
 		 pos = n, n = pos->next)
 
-struct list_head
+typedef struct list_head
 {
 	struct list_head *prev, *next;
-};
-void list_init(struct list_head *link);
-void list_add(struct list_head *link, struct list_head *prev);
-void list_add_tail(struct list_head *link, struct list_head *head);
-void list_del(struct list_head *link);
-int list_empty(const struct list_head *head);
+}list_head;
+void list_init(list_head *link);
+void list_add(list_head *link, list_head *prev);
+void list_add_tail(list_head *link, list_head *head);
+void list_del(list_head *link);
+int list_empty(const list_head *head);
 #endif

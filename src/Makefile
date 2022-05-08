@@ -13,10 +13,9 @@ CC      := gcc
 LIBS    :=
 LDFLAGS :=
 DEFINES :=
-INCLUDE := -I. -I ../include/
+INCLUDE := -I. 
 CFLAGS  := -g -Wall -O0 $(DEFINES) $(INCLUDE)
-CXXFLAGS:= $(CFLAGS) -DHAVE_CONFIG_H
-SHARE   := -fPIC -shared -o
+SHARE   := -shared -fPIC -o
   
 #i think you should do anything here
 #下面的基本上不需要做任何改动了
@@ -44,5 +43,5 @@ veryclean : clean
 	rm -fr $(TARGET)
   
 $(TARGET) : $(OBJS)
-	$(CC) $(CXXFLAGS) $(SHARE) $@ $(OBJS) $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) $(SHARE) $@ $(OBJS) $(LDFLAGS) $(LIBS)
 	rm -rf  *.o

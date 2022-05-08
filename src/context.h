@@ -13,9 +13,7 @@ typedef struct context {
   char *home;
   hashmap *user_map;
   hashmap  *sys_map;
-  schema   *meta;
-  pthread_t ckp_thd;
 }context;
-context context_init(const char *home);
-void context_deinit(context *ctx);
+context *context_open(const char *home);
+void context_close(context *ctx);
 #endif
