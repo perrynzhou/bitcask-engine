@@ -9,5 +9,6 @@
 #include "context.h"
 int main() {
   context *ctx = context_open("/tmp/self_data");
+  
   context_close(ctx);
 }

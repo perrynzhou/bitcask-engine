@@ -11,35 +11,40 @@
 #define SCHEMA_BLOCK_SIZE (1024 * 1024)
 schema *schema_alloc(const char *name)
 {
-  schema *m = NULL;
+  schema *s = NULL;
   if (name)
   {
 
-    m = (schema *)calloc(1, sizeof(schema));
-    assert(m != NULL);
-    m->bytes = ATOMIC_VAR_INIT(0);
-    m->obj_count = ATOMIC_VAR_INIT(0);
+    s = (schema *)calloc(1, sizeof(schema));
+    assert(s != NULL);
+    size_t name_len = strlen(name)+1;
+    schema_meta *meta = (schema_meta *)calloc(1,sizeof(schema_meta)+name_len);
+    assert(meta !=NULL);
+    meta->is_active=1;
+    strncpy((char *)&meta->name,name,name_len);
+    meta->bytes = ATOMIC_VAR_INIT(0);
+    meta->obj_count = ATOMIC_VAR_INIT(0);
     // m->fd = open(name,O_RDWR|O_CREAT|O_APPEND);
-    m->fd = open(name, O_RDWR | O_CREAT);
+    s->fd = open(name, O_RDWR | O_CREAT);
 
-    assert(m->fd != -1);
-    m->name = strdup(name);
-    m->data = bplus_tree_init(m->name, m->fd, SCHEMA_BLOCK_SIZE);
+    assert(s->fd != -1);
+    s->data = bplus_tree_init(meta->name, s->fd, SCHEMA_BLOCK_SIZE);
+    s->meta = meta;
   }
-  return m;
+  return s;
 }
-void schema_destroy(schema *m, bool is_drop)
+void schema_destroy(schema *s, bool is_drop)
 {
-  if (m)
+  if (s)
   {
-    close(m->fd);
-    bplus_tree_deinit(m->data);
+    close(s->fd);
+    bplus_tree_deinit(s->data);
     if (is_drop)
     {
-      remove(m->name);
+      remove((char *)&s->meta->name);
     }
-    free(m->name);
-    free(m);
-    m = NULL;
+    free(s->meta);
+    free(s);
+    s = NULL;
   }
 }

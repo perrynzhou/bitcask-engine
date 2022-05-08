@@ -1081,7 +1081,7 @@ static int leaf_remove(bplus_tree *tree, bplus_node *leaf, key_t key)
         return 0;
 }
 
-static int bplus_tree_delete(bplus_tree *tree, key_t key)
+int bplus_tree_del(bplus_tree *tree, key_t key)
 {
         bplus_node *node = node_seek(tree, tree->root);
         while (node != NULL)
@@ -1114,14 +1114,8 @@ long bplus_tree_get(bplus_tree *tree, key_t key)
 
 int bplus_tree_put(bplus_tree *tree, key_t key, long data)
 {
-        if (data)
-        {
-                return bplus_tree_insert(tree, key, data);
-        }
-        else
-        {
-                return bplus_tree_delete(tree, key);
-        }
+    return bplus_tree_insert(tree, key, data);
+        
 }
 
 long bplus_tree_get_range(bplus_tree *tree, key_t key1, key_t key2)

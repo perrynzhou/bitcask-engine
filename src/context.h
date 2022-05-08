@@ -13,7 +13,10 @@ typedef struct context {
   char *home;
   hashmap *user_map;
   hashmap  *sys_map;
+  schema   *meta_schema;
 }context;
 context *context_open(const char *home);
+int context_put_schema(context *ctx, char *schema_name);
+int context_del_schema(context *ctx, char *schema_name);
 void context_close(context *ctx);
 #endif

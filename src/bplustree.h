@@ -24,6 +24,7 @@ typedef struct bplus_tree
 void bplus_tree_dump(bplus_tree *tree);
 long bplus_tree_get(bplus_tree *tree, key_t key);
 int bplus_tree_put(bplus_tree *tree, key_t key, long data);
+int bplus_tree_del(bplus_tree *tree, key_t key);
 long bplus_tree_get_range(bplus_tree *tree, key_t key1, key_t key2);
 bplus_tree *bplus_tree_init(char *name,int fd, int block_size);
 void bplus_tree_deinit(bplus_tree *tree);
