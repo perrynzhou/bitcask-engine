@@ -78,6 +78,7 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
   if (m->files[m->meta->data_file_cnt - 1]->cur_size >= m->cf->max_data_file_size)
   {
     pthread_mutex_lock(&m->lock);
+    data_file_change_read_only(m->files[m->data_file_id - 1]);
     data_file *new_file = data_file_alloc(m->data_file_id, m->cf->max_key_size, m->cf->max_value_size, m->cf->max_data_file_size);
     m->files[m->data_file_id] = new_file;
     ++m->data_file_id;

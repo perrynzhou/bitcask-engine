@@ -13,7 +13,6 @@
 #define SYS_WAL_LOG_INDEX 0
 #define USER_WAL_LOG_INDEX 0
 
-char *del_kv_wal_log[] = {"del_sys.wal","del_user.wal"};
 typedef struct context {
   conf  *cf;
   hashmap *user_map;
@@ -21,8 +20,9 @@ typedef struct context {
   schema   *meta_schema;
   int      sys_wal_log_fd;
 }context;
-context *context_open(const char *conf_file);
+context *context_open(conf *cf);
 int context_put_schema(context *ctx, char *schema_name);
 int context_del_schema(context *ctx, char *schema_name);
+void *context_get_schema(context *ctx, char *schema_name,bool flag);
 void context_close(context *ctx);
 #endif

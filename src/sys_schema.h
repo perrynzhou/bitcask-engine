@@ -8,6 +8,6 @@
 #ifndef _SYS_SCHEMA_H
 #define _SYS_SCHEMA_H
 static char *sys_schema[] = {
-  "meta",
+  "sys_schema.meta",
 };
 #endif

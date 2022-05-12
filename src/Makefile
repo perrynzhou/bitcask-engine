@@ -5,7 +5,7 @@
   
 #target you can change test to what you want
 #共享库文件名，lib*.so
-TARGET  := ../libbtree_engine.so
+TARGET  := ../libbitcask.so
   
 #compile and lib parameter
 #编译参数

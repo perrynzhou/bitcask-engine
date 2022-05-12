@@ -15,7 +15,7 @@ typedef struct entry {
   uint32_t v_sz;
   char kv[0];
 }entry;
-inline entry *entry_alloc(void *key,size_t key_size,void *value,size_t value_size) {
+entry *entry_alloc(void *key,size_t key_size,void *value,size_t value_size) {
   entry *et = NULL;
  if(key && value) {
       et = (entry *)calloc(1,sizeof(entry)+key_size+value_size);

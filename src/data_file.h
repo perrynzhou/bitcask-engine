@@ -8,7 +8,7 @@
 #ifndef _DATA_FILE_H
 #define _DATA_FILE_H
 #include "utils.h"
-const char *data_file_fmt = "%09d_%d.data";
+
 typedef struct data_file
 {
   int id;
@@ -23,21 +23,7 @@ typedef struct data_file
 data_file *data_file_alloc(int id, uint64_t max_key_size, uint64_t max_value_size, uint64_t max_file_size);
 ssize_t data_file_write(data_file *f, void *data, size_t len);
 ssize_t data_file_read(data_file *f, size_t offset, void *buf, size_t len);
-inline int data_file_change_read_only(data_file *f)
-{
-  int ret = -1;
-  if (f && f->w_fd != -1)
-  {
-    char old_filename[256] = {'\0'};
-    snprintf((char *)&old_filename, 256, data_file_fmt, f->id, 1);
-    char new_filename[256] = {'\0'};
-    snprintf((char *)&new_filename, 256, data_file_fmt, f->id, 0);
-    rename((char *)&old_filename, (char *)&new_filename);
-    close(f->w_fd);
-    --f->read_only;
-  }
-  return ret;
-}
+int data_file_change_read_only(data_file *f);
 int data_file_destroy(data_file *f);
 inline void data_file_sync(data_file *f)
 {

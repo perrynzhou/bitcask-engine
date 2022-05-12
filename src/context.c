@@ -16,19 +16,16 @@
 #define SCHEMA_BUF_SIZE (496)
 #define CONTEXT_SYSSCHEMA_INSIDE_COUNT (64)
 #define CONTEXT_USERSCHEMA_INSIDE_COUNT (65535)
+const static  char *del_kv_wal_log[] = {"del_sys.wal","del_user.wal"};
 
 static int *context_schema_traverse(void *k, void *v)
 {
 
   return 0;
 }
-context *context_open(const char *conf_file)
+context *context_open(conf *cf)
 {
-  if (conf_file == NULL)
-  {
-    return NULL;
-  }
-  conf *cf = conf_create(conf_file);
+ 
   if (cf == NULL)
   {
     return NULL;
@@ -56,13 +53,24 @@ context *context_open(const char *conf_file)
   for (size_t i = 0; i < sys_schema_count; i++)
   {
     char buf[SCHEMA_BUF_SIZE] = {'\0'};
-    snprintf((char *)&buf, SCHEMA_BUF_SIZE, "%s/%s.sys", home, sys_schema[i]);
+    snprintf((char *)&buf, SCHEMA_BUF_SIZE, "%s/%s", home, sys_schema[i]);
     schema *sm = schema_alloc(home, sys_schema[i], cf, ctx->sys_wal_log_fd);
     int ret = hashmap_put(ctx->sys_map, sys_schema[i], strlen(sys_schema[i]), sm, sizeof(schema *));
     logi("load %s schema,ret=%d", (char *)&buf, ret);
     ctx->meta_schema = meta_schema;
   }
   return ctx;
+}
+void *context_get_schema(context *ctx, char *schema_name,bool flag)
+{
+  void *schema = NULL;
+   if(ctx && schema) {
+     hashmap  *mp = (flag)?ctx->sys_map:ctx->user_map;
+     if(mp) {
+        schema = hashmap_get(mp,schema_name,strlen(schema_name));
+     }
+   }
+   return schema;
 }
 int context_put_schema(context *ctx, char *schema_name)
 {
@@ -99,7 +107,6 @@ int context_del_schema(context *ctx, char *schema_name)
     size_t key_len = strlen(schema_name);
     hashmap_del(ctx->user_map, schema_name, key_len);
 
-    uint32_t hash_code = hash_fnv1_32(schema_name, key_len - 1);
     schema_del_kv(ctx->meta_schema,schema_name,key_len);
     hashmap_del(ctx->sys_map,schema_name,key_len-1);
     ret = 0;

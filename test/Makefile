@@ -1,5 +1,5 @@
 CC        := gcc
-LIBS      := -lbtree_engine -lpthread 
+LIBS      := -lbitcask -lpthread  -ljansson
 LDFLAGS   := -L ../ -L.
 INCLUDE   := -I ../src
 CFLAGS    := -g -O0  -Wall
@@ -12,4 +12,4 @@ OBJDIR = .
 all: $(TARGET) 
 clean:
 	rm -rf *.o
-	rm -rf bplustree_demo context_demo
+	rm -rf bitcask_demo 
