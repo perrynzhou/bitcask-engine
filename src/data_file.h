@@ -15,9 +15,8 @@ typedef struct data_file
   int r_fd;
   int w_fd;
   _Atomic(uint64_t) cur_size;
-  _Atomic(uint64_t) max_key_size;
-  _Atomic(uint64_t) max_value_size;
-  _Atomic(uint64_t) max_file_size;
+  uint64_t max_kv_size;
+  uint64_t max_file_size;
   _Atomic(uint8_t) read_only;
 } data_file;
 data_file *data_file_alloc(int id, uint64_t max_key_size, uint64_t max_value_size, uint64_t max_file_size);

@@ -38,9 +38,8 @@ data_file *data_file_alloc(int id, uint64_t max_key_size, uint64_t max_value_siz
   f->r_fd = open((char *)&filename, O_RDONLY);
   assert(f->r_fd != -1);
   f->read_only = 0;
-  f->max_key_size = max_key_size;
+  f->max_kv_size = max_key_size + max_value_size;
   f->max_file_size = max_file_size;
-  f->max_value_size = max_value_size;
   f->cur_size = ATOMIC_VAR_INIT(0);
 
   return f;
@@ -48,7 +47,7 @@ data_file *data_file_alloc(int id, uint64_t max_key_size, uint64_t max_value_siz
 ssize_t data_file_write(data_file *f, void *data, size_t len)
 {
   ssize_t ret = -1;
-  if (f->w_fd != -1)
+  if (f->w_fd != -1 && !f->read_only &&  len < f->max_kv_size)
   {
     f->cur_size += len;
     ret = write(f->w_fd, data, len);
