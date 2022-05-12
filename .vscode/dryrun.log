@@ -1,6 +1,6 @@
-make --dry-run --keep-going --print-directory
-make: Entering directory '/home/perrynzhou/source/perrynzhou/btree-engine'
-make: Leaving directory '/home/perrynzhou/source/perrynzhou/btree-engine'
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/perrynzhou/source/perrynzhou/bitcask-engine'
+make: Leaving directory '/home/perrynzhou/source/perrynzhou/bitcask-engine'
  
 make: *** No targets specified and no makefile found.  Stop.
 
