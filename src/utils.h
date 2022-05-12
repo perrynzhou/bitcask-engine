@@ -38,6 +38,10 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/param.h>
+
+#define container_of(ptr, type, member) ({                      \
+        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+        (type *)( (char *)__mptr - offsetof(type,member) );})
 typedef uint32_t (*hashmap_hash_cb)(void *, size_t);
 typedef int (*hashmap_traverse_cb)(void *,void *);
 typedef int (*hashmap_key_compare_cb)(void *,void *,size_t);

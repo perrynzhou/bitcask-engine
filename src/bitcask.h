@@ -7,7 +7,15 @@
 
 #ifndef _BITCASK_H
 #define _BITCASK_H
-typedef struct {
+#include "utils.h"
+typedef struct bitcask{
 
-}bitcak;
+}bitcask;
+int bitcask_open(bitcask *bk);
+int bitcask_put(bitcask *bk,void *key,size_t key_size,void *value,size_t value_size);
+void *bitcask_get(bitcask *bk,void *key,size_t key_size,size_t *value_size);
+int bitcask_delete(bitcask *bk,void *key,size_t key_size);
+int bitcask_merge(bitcask *bk,void *key,size_t key_size);
+
+void bitcask_close(bitcask *bk);
 #endif

@@ -8,36 +8,33 @@
 #ifndef _SCHEMA_H
 #define _SCHEMA_H
 #include "utils.h"
-#include "bplustree.h"
+#include "art.h"
+#include "data_file.h"
+#include "conf.h"
 #include <stdatomic.h>
-
-
-typedef struct schema_meta {
+typedef struct schema_meta
+{
   size_t len;
   _Atomic(uint64_t) bytes;
-  _Atomic(uint64_t) obj_count;
-  uint8_t  is_active;
+  _Atomic(uint64_t) kv_count;
+  _Atomic(uint8_t)  active;
+  _Atomic(uint32_t) data_file_cnt;
   char name[0];
-}schema_meta;
+} schema_meta;
 typedef struct schema
 {
+  char *db_home;
   schema_meta *meta;
-  int fd;
-  bplus_tree *data;
-  
+  _Atomic(uint32_t) data_file_id;
+  data_file *cur_file;
+  art_tree index_tree;
+  conf *cf;
+  pthread_mutex_t lock;
 } schema;
-schema *schema_alloc(const char *name);
-int schema_put(schema *m,void *key,size_t key_sz,void *value,size_t value_sz);
-void *schema_get(schema *m,void *key,size_t key_sz);
-int schema_del(schema *m,void *key,size_t key_sz);
-void schema_destroy(schema *m,bool is_drop);
-inline int schema_modify(schema *m, uint64_t bytes)
-{
-  if (m)
-  {
-    atomic_fetch_add(&m->meta->bytes, bytes);
-    atomic_fetch_add(&m->meta->obj_count, 1);
-  }
-  return -1;
-}
+schema *schema_alloc(const char *db_home, const char *name, conf *cf);
+int schema_put(schema *m, void *key, size_t key_sz, void *value, size_t value_sz);
+void *schema_get(schema *m, void *key, size_t key_sz);
+int schema_del(schema *m, void *key, size_t key_sz);
+void schema_close(schema *m);
+void schema_destroy(schema *m);
 #endif
