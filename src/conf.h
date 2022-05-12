@@ -10,6 +10,7 @@
 #include "utils.h"
 typedef struct conf
 {
+   char  *db_home;
    size_t max_data_file_size;
    size_t max_key_size;
    size_t max_value_size;

@@ -26,15 +26,16 @@ typedef struct schema
   char *db_home;
   schema_meta *meta;
   _Atomic(uint32_t) data_file_id;
-  data_file *cur_file;
+  data_file **files;
   art_tree index_tree;
   conf *cf;
+  int   del_wal_fd;
   pthread_mutex_t lock;
 } schema;
-schema *schema_alloc(const char *db_home, const char *name, conf *cf);
-int schema_put(schema *m, void *key, size_t key_sz, void *value, size_t value_sz);
-void *schema_get(schema *m, void *key, size_t key_sz);
-int schema_del(schema *m, void *key, size_t key_sz);
+schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal_fd);
+int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value_sz);
+void *schema_get_kv(schema *m, void *key, size_t key_sz);
+int schema_del_kv(schema *m, void *key, size_t key_sz);
 void schema_close(schema *m);
 void schema_destroy(schema *m);
 #endif

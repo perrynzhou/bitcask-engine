@@ -45,6 +45,8 @@ conf *conf_create(const char *conf_file) {
     json_t *json_max_data_file_size =
         json_object_get(root, "max_data_file_size");
     json_t *json_max_key_size = json_object_get(root, "max_key_size");
+
+      json_t *json_db_home = json_object_get(root, "db_home");
     json_t *json_max_value_size = json_object_get(root, "max_value_size");
     json_t *json_sync = json_object_get(root, "sync");
     json_t *json_auto_recovery = json_object_get(root, "auto_recovery");
@@ -61,6 +63,7 @@ conf *conf_create(const char *conf_file) {
     m_conf->sync = json_integer_value(json_sync);
     m_conf->auto_recovery = json_integer_value(json_auto_recovery);
     m_conf->db_vsersion = json_integer_value(json_db_vsersion);
+    m_conf->db_home = strdup(json_string_value(json_db_home));
   }
 out:
   if (buf != NULL) {
