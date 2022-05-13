@@ -20,7 +20,7 @@ const static char *del_kv_wal_log[] = {"del_sys.wal", "del_user.wal"};
 
 static int *context_schema_traverse(void *k, void *v)
 {
-  
+
   return 0;
 }
 context *context_open(conf *cf)
@@ -100,11 +100,14 @@ int context_put_schema(context *ctx, char *schema_name)
     schema *new_schema = schema_alloc(db_home, schema_name, ctx->cf, -1);
     assert(new_schema != NULL);
     ++key_len;
-    hashmap_put(ctx->user_map, schema_name, key_len + 1, new_schema, sizeof(void *));
+    hashmap_put(ctx->sys_map, schema_name, key_len + 1, new_schema, sizeof(void *));
     char wal_path[256] = {'\0'};
     snprintf((char *)&wal_path, 256, "%s/%s/%s", db_home, schema_name, del_kv_wal_log[USER_WAL_LOG_INDEX]);
     new_schema->del_wal_fd = open((char *)&wal_path, O_RDWR | O_CREAT | O_TRUNC);
-    schema_put_kv(new_schema, schema_name, key_len + 1, new_schema->meta, new_schema->meta->len);
+    if (ctx->meta_schema)
+    {
+      ret = schema_put_kv(ctx->meta_schema, schema_name, key_len + 1, new_schema->meta, new_schema->meta->len);
+    }
   }
   return ret;
 }
