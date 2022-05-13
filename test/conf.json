@@ -1,0 +1,9 @@
+{
+	"max_data_file_size": 102400000,
+	"max_key_size": 4096,
+	"db_home": "/tmp/db",
+	"max_value_size": 4096,
+	"sync": 1,
+	"auto_recovery": 1,
+	"db_vsersion": 1001
+}

@@ -11,7 +11,7 @@
 #include "schema.h"
 #include "conf.h"
 #define SYS_WAL_LOG_INDEX 0
-#define USER_WAL_LOG_INDEX 0
+#define USER_WAL_LOG_INDEX 1
 
 typedef struct context {
   conf  *cf;

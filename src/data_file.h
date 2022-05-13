@@ -19,7 +19,7 @@ typedef struct data_file
   uint64_t max_file_size;
   _Atomic(uint8_t) read_only;
 } data_file;
-data_file *data_file_alloc(int id, uint64_t max_key_size, uint64_t max_value_size, uint64_t max_file_size);
+data_file *data_file_alloc(char *parent_path,int id, uint64_t max_key_size, uint64_t max_value_size, uint64_t max_file_size);
 ssize_t data_file_write(data_file *f, void *data, size_t len);
 ssize_t data_file_read(data_file *f, size_t offset, void *buf, size_t len);
 int data_file_change_read_only(data_file *f);

@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu May 12 11:27:08 2022
+# Make data base, printed on Fri May 13 08:38:37 2022
 
 # Variables
 
@@ -35,13 +35,13 @@ VSCODE_LOG_NATIVE = false
 # default
 MAKE_VERSION := 4.2.1
 # makefile
-CURDIR := /home/perrynzhou/source/perrynzhou/bitcask-engine
+CURDIR := /home/perrynzhou/Source/perrynzhou/bitcask-engine
 # makefile
 SHELL = /bin/sh
 # environment
-VSCODE_NLS_CONFIG = {"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"42e84e0914b17800d483f69e299e1b00.zh-cn","_translationsConfigFile":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/tcf.json","_cacheRoot":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn","_resolvedLanguagePackCoreLocation":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/57fd6d0195bb9b9d1b49f6da5db789060795de47","_corruptedFile":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/corrupted.info","_languagePackSupport":true}
+VSCODE_NLS_CONFIG = {"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"42e84e0914b17800d483f69e299e1b00.zh-cn","_translationsConfigFile":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/tcf.json","_cacheRoot":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn","_resolvedLanguagePackCoreLocation":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/da15b6fd3ef856477bf6f4fb29ba1b7af717770d","_corruptedFile":"/home/perrynzhou/.vscode-server/data/clp/42e84e0914b17800d483f69e299e1b00.zh-cn/corrupted.info","_languagePackSupport":true}
 # environment
-_ = /home/perrynzhou/.vscode-server/bin/57fd6d0195bb9b9d1b49f6da5db789060795de47/node
+_ = /home/perrynzhou/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/node
 # makefile
 MAKEFILE_LIST := 
 # 'override' directive
@@ -59,15 +59,15 @@ VSCODE_CWD = /home/perrynzhou
 # environment
 GOPROXY = https://mirrors.aliyun.com/goproxy/
 # environment
-SSH_CONNECTION = 10.211.55.2 64206 10.211.55.5 22
+SSH_CONNECTION = 10.211.55.2 64708 10.211.55.5 22
 # environment
-PATH = /home/perrynzhou/.vscode-server/bin/57fd6d0195bb9b9d1b49f6da5db789060795de47/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/perrynzhou/.rustup/toolchains/stable-x86_64-unknown-linux-gnu:/home/perrynzhou/.go/bin
+PATH = /home/perrynzhou/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/perrynzhou/.rustup/toolchains/stable-x86_64-unknown-linux-gnu:/home/perrynzhou/.go/bin
 # environment
 XDG_RUNTIME_DIR = /run/user/1000
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-55ad46f1-4117-490e-b401-13256ad72352.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-26c4d56d-9c2e-4601-ac5c-2717af9b9c47.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -79,7 +79,7 @@ GOBIN = /home/perrynzhou/.go/bin
 # environment
 VSCODE_PIPE_LOGGING = true
 # environment
-PWD = /home/perrynzhou/source/perrynzhou/bitcask-engine
+PWD = /home/perrynzhou/Source/perrynzhou/bitcask-engine
 # default
 .LOADED := 
 # automatic
@@ -109,7 +109,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 1
 # environment
-XDG_SESSION_ID = 486
+XDG_SESSION_ID = 44
 # environment
 USER = perrynzhou
 # makefile
@@ -129,11 +129,11 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 10.211.55.2 64206 22
+SSH_CLIENT = 10.211.55.2 64708 22
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
-BROWSER = /home/perrynzhou/.vscode-server/bin/57fd6d0195bb9b9d1b49f6da5db789060795de47/bin/helpers/browser.sh
+BROWSER = /home/perrynzhou/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/bin/helpers/browser.sh
 # environment
 VSCODE_HANDLES_SIGPIPE = true
 # default
@@ -169,9 +169,9 @@ MOTD_SHOWN = pam
 
 # Directories
 
-# . (device 64768, inode 1328579): 9 files, no impossibilities.
+# . (device 64768, inode 1328579): 8 files, no impossibilities.
 
-# 9 files, no impossibilities in 1 directories.
+# 8 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -221,12 +221,12 @@ GNUmakefile:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 17 / storage = 140 B / avg = 8 B
-# current buf: size = 8162 B / used = 140 B / count = 17 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 16 / storage = 126 B / avg = 7 B
+# current buf: size = 8162 B / used = 126 B / count = 16 / avg = 7 B
 
-# strcache performance: lookups = 20 / hit rate = 15%
+# strcache performance: lookups = 19 / hit rate = 15%
 # hash-table stats:
-# Load=17/8192=0%, Rehash=0, Collisions=1/20=5%
-# Finished Make data base on Thu May 12 11:27:08 2022
+# Load=16/8192=0%, Rehash=0, Collisions=1/19=5%
+# Finished Make data base on Fri May 13 08:38:37 2022
 
  

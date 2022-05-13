@@ -2,6 +2,7 @@
 	"makefile.extensionOutputFolder": "./.vscode",
 	"files.associations": {
 		"stat.h": "c",
-		"bitcask.h": "c"
+		"bitcask.h": "c",
+		"hashmap.h": "c"
 	}
 }

@@ -39,9 +39,10 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     s->cf = cf;
     s->del_wal_fd =del_wal_fd;
 
-    data_file *cur_data_file = data_file_alloc(0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
+    data_file *cur_data_file = data_file_alloc((char *)&schema_path,0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
     s->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
     s->files[s->data_file_id] = cur_data_file;
+    s->meta = meta;
     ++s->meta->data_file_cnt;
   }
   return s;
@@ -79,12 +80,15 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
   {
     pthread_mutex_lock(&m->lock);
     data_file_change_read_only(m->files[m->data_file_id - 1]);
-    data_file *new_file = data_file_alloc(m->data_file_id, m->cf->max_key_size, m->cf->max_value_size, m->cf->max_data_file_size);
+    char parent_path[256] = {'\0'};
+    snprintf((char *)&parent_path,256,"%s/%s",m->db_home,(char *)&m->meta->name);
+    data_file *new_file = data_file_alloc((char *)&parent_path,m->data_file_id, m->cf->max_key_size, m->cf->max_value_size, m->cf->max_data_file_size);
     m->files[m->data_file_id] = new_file;
     ++m->data_file_id;
+    ++m->meta->data_file_cnt;
     pthread_mutex_unlock(&m->lock);
   }
-  size_t file_index = m->data_file_id - 1;
+  size_t file_index = m->data_file_id;
   entry *et = entry_alloc(key, key_sz, value, value_sz);
   size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
   data_file_write(m->files[file_index], et, write_sz);
