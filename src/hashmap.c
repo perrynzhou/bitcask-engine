@@ -28,7 +28,7 @@ static member_pair *member_pair_alloc(void *key, size_t key_sz, void *val, size_
     pair->val = calloc(1, sizeof(char) * val_sz);
     assert(pair->val != NULL);
     memcpy(pair->key, key, key_sz);
-    memcpy(pair->val, key, val_sz);
+    memcpy(pair->val, val, val_sz);
   }
   return pair;
 }
