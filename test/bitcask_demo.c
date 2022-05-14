@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 #include "bitcask.h"
+#include "schema.h"
+#include "log.h"
 int main(int argc, char *argv[])
 {
 
@@ -18,6 +20,12 @@ int main(int argc, char *argv[])
     char tmp[256] = {'\0'};
     snprintf((char *)&tmp, 256, "%d-schema", i);
     ret = bitcask_create_schema(&bk, (char *)&tmp);
+
+    void *schema_ptr = bitcask_fetch_schema(&bk,(char *)&tmp);
+    if(schema_ptr !=NULL) {
+      schema *m = (schema *)schema_ptr;
+      logi("name=%s,cnt=%d",m->meta->name,m->meta->data_file_cnt);
+    }
   }
   for (size_t i = 0; i < n; i++)
   {
@@ -29,6 +37,7 @@ int main(int argc, char *argv[])
     size_t key_sz = strlen((char *)&key_buf);
 
     ret = bitcask_put(&bk, (char *)&schema_buf, (char *)&key_buf, key_sz, i, sizeof(int));
+
   }
   for (size_t i = 0; i < n; i++)
   {

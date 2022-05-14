@@ -108,6 +108,7 @@ int hashmap_init(hashmap *d, size_t max_count, hashmap_hash_cb hash_cb, hashmap_
     d->cur_count = 0;
     d->key_free_cb = NULL;
     d->val_free_cb = NULL;
+    d->max_count=max_count;
 
     return 0;
   }
@@ -134,13 +135,8 @@ int hashmap_put(hashmap *d, void *key, size_t key_sz, void *value, size_t value_
   {
     if (d->cur_count < d->max_count)
     {
-      void *key_data = calloc(1, sizeof(char *) * key_sz);
-      assert(key_data != NULL);
-      void *value_data = calloc(1, sizeof(char *) * value_sz);
-      assert(value_data != NULL);
-      member_pair *pair = member_pair_alloc(key, key_sz, value, value_sz);
-      pair->key = key_data;
-      pair->val = value_data;
+      member_pair *pair = member_pair_alloc(key, key_sz+1, value, value_sz);
+      assert(pair != NULL);
       uint32_t index = hashmap_get_index(d,key,key_sz);
       if (d->ptr[index] == NULL)
       {

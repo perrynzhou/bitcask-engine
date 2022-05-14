@@ -7,17 +7,19 @@
 
 #include <stdio.h>
 #include "bitcask.h"
+#include "log.h"
 int bitcask_open(bitcask *bk,const char *conf_file)
 {
+  int ret = -1;
   if(bk && conf_file) {
     conf *cf = conf_create(conf_file);
     assert(cf !=NULL);
     bk->cf = cf;
     bk->ctx = context_open(cf);
     assert(bk->ctx !=NULL);
-    return 0;
+    ret = 0;
   }
-  return -1;
+  return ret;
 
 }
 int bitcask_create_schema(bitcask *bk,const char *schema_name)
@@ -27,6 +29,18 @@ int bitcask_create_schema(bitcask *bk,const char *schema_name)
     ret = context_put_schema(bk->ctx,(char *)schema_name);
   }
   return ret;
+}
+void *bitcask_fetch_schema(bitcask *bk,const char *schema_name){
+   void *m = NULL;
+   if(bk && schema_name) {
+     m = context_get_schema(bk->ctx,(char *)schema_name);
+     if(m) {
+        schema *tmp = (schema *)m;
+        logi("name=%s,file_cnt=%d,active=%d",tmp->meta->name,tmp->meta->data_file_cnt,tmp->meta->active);
+     }
+   }
+   return m;
+   
 }
 int bitcask_drop_schema(bitcask *bk,const char *schema_name)
 {
@@ -46,7 +60,7 @@ int bitcask_put(bitcask *bk,const char *schema_name,void *key,size_t key_size,vo
 {
   int ret = -1;
   if(bk && schema_name && key && value) {
-     schema *s = (schema *)hashmap_get(bk->ctx->user_map,(void *)schema_name,strlen(schema_name));
+     schema *s = (schema *)hashmap_get(bk->ctx->schema_cache,(void *)schema_name,strlen(schema_name));
      if(!s) {
        return ret;
      }
@@ -58,7 +72,7 @@ void *bitcask_get(bitcask *bk,const char *schema_name,void *key,size_t key_size)
 {
  void *value_ptr = NULL;
   if(bk && schema_name && key) {
-     schema *s = (schema *)hashmap_get(bk->ctx->user_map,(void *)schema_name,strlen(schema_name));
+     schema *s = (schema *)hashmap_get(bk->ctx->schema_cache,(void *)schema_name,strlen(schema_name));
      if(s) {
        value_ptr =  schema_get_kv(s,key,key_size);
      }
@@ -70,7 +84,7 @@ int bitcask_del(bitcask *bk,const char *schema_name,void *key,size_t key_size)
 {
   int ret = -1;
   if(bk && schema_name && key) {
-     schema *s = (schema *)hashmap_get(bk->ctx->user_map,(void *)schema_name,strlen(schema_name));
+     schema *s = (schema *)hashmap_get(bk->ctx->schema_cache,(void *)schema_name,strlen(schema_name));
      if(!s) {
        return ret;
      }

@@ -20,10 +20,14 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     s = (schema *)calloc(1, sizeof(schema));
     assert(s != NULL);
     size_t name_len = strlen(name) + 1;
-    schema_meta *meta = (schema_meta *)calloc(1, sizeof(schema_meta) + name_len+1);
-    assert(meta != NULL);
-    meta->active = 1;
-    strncpy((char *)&meta->name, name, name_len);
+    size_t meta_size = sizeof(schema_meta) + name_len;
+    s->meta = (schema_meta *)calloc(1, sizeof(schema_meta) + name_len+1);
+    assert( s->meta != NULL);
+    s->meta->kv_count = ATOMIC_VAR_INIT(0);
+     s->meta->data_file_cnt = ATOMIC_VAR_INIT(0);
+     s->meta->len = meta_size;
+     s->meta->active = 1;
+    strncpy((char *)& s->meta->name, name, name_len);
     s->db_home = strdup(db_home);
     s->data_file_id = ATOMIC_VAR_INIT(0);
     char schema_path[256] = {'\0'};
@@ -32,9 +36,7 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     {
       mkdir((char *)&schema_path, 0755);
     }
-    meta->kv_count = ATOMIC_VAR_INIT(0);
-    meta->data_file_cnt = ATOMIC_VAR_INIT(0);
-    meta->len = sizeof(schema_meta) + name_len+1;
+     
     art_tree_init(&s->index_tree);
     s->cf = cf;
     s->del_wal_fd =del_wal_fd;
@@ -42,7 +44,6 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     data_file *cur_data_file = data_file_alloc((char *)&schema_path,0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
     s->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
     s->files[s->data_file_id] = cur_data_file;
-    s->meta = meta;
     ++s->meta->data_file_cnt;
   }
   return s;

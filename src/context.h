@@ -15,14 +15,14 @@
 
 typedef struct context {
   conf  *cf;
-  hashmap *user_map;
-  hashmap  *sys_map;
+  hashmap  *schema_cache;
+
   schema   *meta_schema;
   int      sys_wal_log_fd;
 }context;
 context *context_open(conf *cf);
 int context_put_schema(context *ctx, char *schema_name);
 int context_del_schema(context *ctx, char *schema_name);
-void *context_get_schema(context *ctx, char *schema_name,bool flag);
+void *context_get_schema(context *ctx, char *schema_name);
 void context_close(context *ctx);
 #endif

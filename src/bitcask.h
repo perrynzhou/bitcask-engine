@@ -16,7 +16,7 @@ typedef struct bitcask{
 int bitcask_open(bitcask *bk,const char *conf_file);
 int bitcask_create_schema(bitcask *bk,const char *schema_name);
 int bitcask_drop_schema(bitcask *bk,const char *schema_name);
-int bitcask_dump_schema(bitcask *bk,const char *schema_name);
+void *bitcask_fetch_schema(bitcask *bk,const char *schema_name);
 
 int bitcask_put(bitcask *bk,const char *schema_name,void *key,size_t key_size,void *value,size_t value_size);
 void *bitcask_get(bitcask *bk,const char *schema_name,void *key,size_t key_size);
