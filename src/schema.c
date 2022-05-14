@@ -19,17 +19,8 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
 
     s = (schema *)calloc(1, sizeof(schema));
     assert(s != NULL);
-    size_t name_len = strlen(name) + 1;
-    size_t meta_size = sizeof(schema_meta) + name_len;
-    s->meta = (schema_meta *)calloc(1, sizeof(schema_meta) + name_len+1);
-    assert( s->meta != NULL);
-    s->meta->kv_count = ATOMIC_VAR_INIT(0);
-     s->meta->data_file_cnt = ATOMIC_VAR_INIT(0);
-     s->meta->len = meta_size;
-     s->meta->active = 1;
-    strncpy((char *)& s->meta->name, name, name_len);
-    s->db_home = strdup(db_home);
-    s->data_file_id = ATOMIC_VAR_INIT(0);
+    s->meta = schema_meta_alloc(name);
+    assert(s->meta != NULL);
     char schema_path[256] = {'\0'};
     snprintf((char *)&schema_path, 256, "%s/%s", db_home, name);
     if (access((char *)&schema_path, F_OK) != 0)

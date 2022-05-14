@@ -71,12 +71,12 @@ context *context_open(conf *cf)
 }
 void *context_get_schema(context *ctx, char *schema_name)
 {
-  void *schema = NULL;
+  void *ptr = NULL;
   if (ctx && ctx->schema_cache)
   {
-    schema = hashmap_get(ctx->schema_cache, schema_name, strlen(schema_name));
+    ptr = hashmap_get(ctx->schema_cache, schema_name, strlen(schema_name));
   }
-  return schema;
+  return ptr;
 }
 int context_put_schema(context *ctx, char *schema_name)
 {

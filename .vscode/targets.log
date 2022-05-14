@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sat May 14 07:55:16 2022
+# Make data base, printed on Sat May 14 10:11:18 2022
 
 # Variables
 
@@ -59,7 +59,7 @@ VSCODE_CWD = /home/perrynzhou
 # environment
 GOPROXY = https://mirrors.aliyun.com/goproxy/
 # environment
-SSH_CONNECTION = 10.211.55.2 51657 10.211.55.5 22
+SSH_CONNECTION = 10.211.55.2 53067 10.211.55.5 22
 # environment
 PATH = /home/perrynzhou/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/perrynzhou/.rustup/toolchains/stable-x86_64-unknown-linux-gnu:/home/perrynzhou/.go/bin
 # environment
@@ -67,7 +67,7 @@ XDG_RUNTIME_DIR = /run/user/1000
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-cb6408d6-e311-45be-ae67-94b7ed842be9.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-c376b3b4-08ba-4d7a-a998-3722e4c84250.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -109,7 +109,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 1
 # environment
-XDG_SESSION_ID = 70
+XDG_SESSION_ID = 91
 # environment
 USER = perrynzhou
 # makefile
@@ -129,7 +129,7 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 10.211.55.2 51657 22
+SSH_CLIENT = 10.211.55.2 53067 22
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -227,6 +227,6 @@ GNUmakefile:
 # strcache performance: lookups = 19 / hit rate = 15%
 # hash-table stats:
 # Load=16/8192=0%, Rehash=0, Collisions=1/19=5%
-# Finished Make data base on Sat May 14 07:55:16 2022
+# Finished Make data base on Sat May 14 10:11:18 2022
 
  

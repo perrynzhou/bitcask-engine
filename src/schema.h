@@ -12,15 +12,7 @@
 #include "data_file.h"
 #include "conf.h"
 #include <stdatomic.h>
-typedef struct schema_meta
-{
-  size_t len;
-  _Atomic(uint64_t) bytes;
-  _Atomic(uint64_t) kv_count;
-  _Atomic(uint8_t)  active;
-  _Atomic(uint32_t) data_file_cnt;
-  char name[0];
-} schema_meta;
+#include "schema_meta.h"
 typedef struct schema
 {
   char *db_home;
