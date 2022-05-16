@@ -43,7 +43,7 @@ inline void schema_meta_incr_filecnt(schema_meta *sm)
 {
   if (sm)
   {
-    ++sm->data_file_cnt;
+    atomic_fetch_add(&sm->data_file_cnt,1);
   }
 }
 void schema_meta_destroy(schema_meta *m);

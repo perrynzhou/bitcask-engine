@@ -36,7 +36,7 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     data_file *cur_data_file = data_file_alloc((char *)&schema_path,0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
     s->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
     s->files[s->data_file_id] = cur_data_file;
-    ++s->meta->data_file_cnt;
+    atomic_fetch_add(&s->meta->data_file_cnt,1);
   }
   return s;
 }
@@ -77,8 +77,8 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
     snprintf((char *)&parent_path,256,"%s/%s",m->db_home,(char *)&m->meta->name);
     data_file *new_file = data_file_alloc((char *)&parent_path,m->data_file_id, m->cf->max_key_size, m->cf->max_value_size, m->cf->max_data_file_size);
     m->files[m->data_file_id] = new_file;
-    ++m->data_file_id;
-    ++m->meta->data_file_cnt;
+    atomic_fetch_add(&m->data_file_id,1);
+    atomic_fetch_add(&m->meta->data_file_cnt,1);
     pthread_mutex_unlock(&m->lock);
   }
 
@@ -98,7 +98,7 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
   if (!found)
   {
     art_insert(&m->index_tree, (const unsigned char *)key, key_sz, itm);
-    ++m->meta->kv_count;
+    atomic_fetch_add(&m->meta->kv_count,1);
   }else {
       // save invalid k/v
       item *it = (item *)found;

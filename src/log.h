@@ -48,13 +48,13 @@ extern "C" {
 #define SLOG_NUL                '\0'
 
 typedef struct log_date {
-    uint16_t nYear;
-    uint8_t nMonth;
-    uint8_t nDay;
-    uint8_t nHour;
-    uint8_t nMin;
-    uint8_t nSec;
-    uint8_t nUsec;
+    uint16_t n_year;
+    uint8_t n_month;
+    uint8_t n_day;
+    uint8_t n_hour;
+    uint8_t n_min;
+    uint8_t n_sec;
+    uint8_t n_usec;
 } slog_date;
 
 uint8_t slog_get_usec();
@@ -144,7 +144,7 @@ typedef struct log_config {
     char s_file_path[SLOG_PATH_MAX];      // Output file path for logs
 } slog_config;
 
-size_t slog_version(char *pDest, size_t nSize, uint8_t nMin);
+size_t slog_version(char *pDest, size_t nSize, uint8_t n_min);
 void slog_config_get(slog_config *pCfg);
 void slog_config_set(slog_config *pCfg);
 

@@ -36,7 +36,7 @@ void *bitcask_fetch_schema(bitcask *bk,const char *schema_name){
      m = context_get_schema(bk->ctx,(char *)schema_name);
      if(m) {
         schema *tmp = (schema *)m;
-        slog_info("name=%s,file_cnt=%d,active=%d",tmp->meta->name,tmp->meta->data_file_cnt,tmp->meta->active);
+       // slog_info("name=%s,file_cnt=%d,active=%d",tmp->meta->name,tmp->meta->data_file_cnt,tmp->meta->active);
      }
    }
    return m;

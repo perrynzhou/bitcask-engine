@@ -16,15 +16,20 @@ int main(int argc, char *argv[])
 
   slog_init("bitcask-engine", n_log_flags, 0);
   slog_enable(SLOG_FLAGS_ALL);
-
+  slog_config cfg;
+  slog_config_get(&cfg);
+    cfg.n_trace_tid = 1;
+     slog_config_set(&cfg);
   bitcask bk;
   int ret = bitcask_open(&bk, argv[1]);
   slog_info("bitcask_open ret=%d", ret);
   int n = atoi(argv[2]);
+  char *schema_name =NULL;
   for (size_t i = 0; i < n; i++)
   {
     char tmp[256] = {'\0'};
     snprintf((char *)&tmp, 256, "%ld-schema", i);
+   schema_name = strdup((char *)&tmp);
     ret = bitcask_create_schema(&bk, (char *)&tmp);
 
     void *schema_ptr = bitcask_fetch_schema(&bk, (char *)&tmp);
@@ -33,33 +38,34 @@ int main(int argc, char *argv[])
       schema *m = (schema *)schema_ptr;
       slog_info("name=%s,cnt=%ld", m->meta->name, m->meta->data_file_cnt);
     }
+    if(i == 0) {
+      break;
+    }
+  }
+  size_t *keys = calloc(n,sizeof(size_t));
+  for (size_t i = 0; i < n; i++)
+  {
+
+    keys[i]=rand();
+    char key_buf[256] = {'\0'};
+    snprintf((char *)&key_buf, 256, "%ld-key", keys[i]);
+    size_t key_sz = strlen((char *)&key_buf);
+    int value = rand() + rand()>>3;
+    ret = bitcask_put(&bk, schema_name, (char *)&key_buf, key_sz, &value, sizeof(int));
+    slog_info("bitcask_put ret=%d:: schema=%s,key=%s,value=%d", ret, schema_name, (char *)&key_buf,value);
   }
   for (size_t i = 0; i < n; i++)
   {
-    char schema_buf[256] = {'\0'};
-    snprintf((char *)&schema_buf, 256, "%ld-schema", i);
+    
 
     char key_buf[256] = {'\0'};
-    snprintf((char *)&key_buf, 256, "%ld-key", i);
-    size_t key_sz = strlen((char *)&key_buf);
-    int value = i + 10;
-    ret = bitcask_put(&bk, (char *)&schema_buf, (char *)&key_buf, key_sz, &value, sizeof(int));
-    slog_info("bitcask_put ret=%d:: schema=%s,key=%s,value=%d", ret, (char *)&schema_buf, (char *)&key_buf);
-  }
-  for (size_t i = 0; i < n; i++)
-  {
-    char schema_buf[256] = {'\0'};
-    snprintf((char *)&schema_buf, 256, "%ld-schema", i);
-
-    char key_buf[256] = {'\0'};
-
-    snprintf((char *)&key_buf, 256, "%ld-key", i);
+    snprintf((char *)&key_buf, 256, "%ld-key", keys[i]);
     size_t key_sz = strlen((char *)&key_buf);
 
-    int *ptr = (int *)bitcask_get(&bk, (char *)&schema_buf, (char *)&key_buf, key_sz);
+    int *ptr = (int *)bitcask_get(&bk, schema_name ,(char *)&key_buf, key_sz);
     if (ptr)
     {
-      slog_info("bitcask_get:: schema=%s,key=%s,value=%d", (char *)&schema_buf, (char *)&key_buf, *ptr);
+      slog_info("bitcask_get:: schema=%s,key=%s,value=%d", schema_name, (char *)&key_buf, *ptr);
     }
   }
   bitcask_close(&bk);

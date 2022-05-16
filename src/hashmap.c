@@ -8,6 +8,7 @@
 #ifndef _HASH_MAP_H
 #define _HASH_MAP_H
 #include "hashmap.h"
+#include <stdatomic.h>
 typedef struct member_pair
 {
   void *key;
@@ -147,7 +148,7 @@ int hashmap_put(hashmap *d, void *key, size_t key_sz, void *value, size_t value_
         pair->next = d->ptr[index];
         d->ptr[index] = pair;
       }
-      d->cur_count++;
+      atomic_fetch_add(&d->cur_count,1);
       return 0;
     }
   }

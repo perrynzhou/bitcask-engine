@@ -7,11 +7,10 @@
 #ifndef _HASHMAP_H
 #define _HASHMAP_H
 #include "utils.h"
-
 typedef struct hashmap
 {
   size_t max_count;
-  size_t cur_count;
+   _Atomic(size_t) cur_count;
   void **ptr;
   hashmap_hash_cb hash_cb;
   hashmap_key_compare_cb cmp_cb;
