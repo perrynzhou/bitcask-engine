@@ -66,7 +66,7 @@ inline static member_pair *hashmap_search(hashmap *d, uint32_t index, void *key,
 }
 
 inline static uint32_t hashmap_get_index(hashmap *d,void *key,size_t key_sz) {
-     uint32_t hash_key = d->hash_cb(key, key_sz);
+    uint32_t hash_key = d->hash_cb((char *)key, key_sz);
     uint32_t index = hashmap_jump_consistent(hash_key, d->max_count);
     return index;
 }

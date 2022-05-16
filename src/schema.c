@@ -10,6 +10,7 @@
 #include "schema.h"
 #include "entry.h"
 #include "item.h"
+#include "log.h"
 #define SCHEMA_DATA_FILE_MIN_LEN (64)
 schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal_fd)
 {
@@ -31,7 +32,7 @@ schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal
     art_tree_init(&s->index_tree);
     s->cf = cf;
     s->del_wal_fd =del_wal_fd;
-
+    s->db_home = strdup(db_home);
     data_file *cur_data_file = data_file_alloc((char *)&schema_path,0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
     s->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
     s->files[s->data_file_id] = cur_data_file;
@@ -87,8 +88,7 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
 
   struct stat s;
   fstat(m->files[file_index]->w_fd, &s);
-  size_t offset =s.st_size;
-
+  size_t offset = m->files[file_index]->cur_size <=0?0:s.st_size;
   item *itm = item_alloc(m->files[file_index]->id, offset, write_sz);
   void *found = art_search(&m->index_tree,(const unsigned char *) key, key_sz);
   if (!found)
@@ -107,7 +107,7 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
 }
 void *schema_get_kv(schema *m, void *key, size_t key_sz)
 {
-  void *value_ptr = NULL;
+  void  *value_ptr = NULL;
   if (m && key)
   {
     void *found = art_search(&m->index_tree, (const unsigned char *)key, key_sz);
@@ -115,8 +115,13 @@ void *schema_get_kv(schema *m, void *key, size_t key_sz)
     {
       item *it = (item *)found;
       data_file *cur_file = m->files[it->fid];
-      value_ptr = calloc(1, it->size);
-      data_file_read(cur_file, it->offset, value_ptr, it->size);
+      entry *et_ptr = (entry *)calloc(1, it->size);
+      data_file_read(cur_file, it->fid,it->offset, et_ptr, it->size);
+      uint32_t crc =  crc32(et_ptr->kv,et_ptr->k_sz+et_ptr->v_sz);
+      if(crc != et_ptr->crc) {
+        logi("source crc:%d,now crc:%d\n",et_ptr->crc,crc);
+      }
+      value_ptr = (char *)et_ptr+et_ptr->v_sz;
     }
   }
   return value_ptr;

@@ -60,7 +60,7 @@ int bitcask_put(bitcask *bk,const char *schema_name,void *key,size_t key_size,vo
 {
   int ret = -1;
   if(bk && schema_name && key && value) {
-     schema *s = (schema *)hashmap_get(bk->ctx->schema_cache,(void *)schema_name,strlen(schema_name));
+     schema *s = (schema *)bitcask_fetch_schema(bk,schema_name);
      if(!s) {
        return ret;
      }
@@ -72,7 +72,7 @@ void *bitcask_get(bitcask *bk,const char *schema_name,void *key,size_t key_size)
 {
  void *value_ptr = NULL;
   if(bk && schema_name && key) {
-     schema *s = (schema *)hashmap_get(bk->ctx->schema_cache,(void *)schema_name,strlen(schema_name));
+     schema *s = (schema *)bitcask_fetch_schema(bk,schema_name);
      if(s) {
        value_ptr =  schema_get_kv(s,key,key_size);
      }
