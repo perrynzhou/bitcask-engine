@@ -81,14 +81,18 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
     ++m->meta->data_file_cnt;
     pthread_mutex_unlock(&m->lock);
   }
+
   size_t file_index = m->data_file_id;
-  entry *et = entry_alloc(key, key_sz, value, value_sz);
-  size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
-  data_file_write(m->files[file_index], et, write_sz);
 
   struct stat s;
   fstat(m->files[file_index]->w_fd, &s);
   size_t offset = m->files[file_index]->cur_size <=0?0:s.st_size;
+
+  entry *et = entry_alloc(key, key_sz, value, value_sz);
+  size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
+  data_file_write(m->files[file_index], et, write_sz);
+
+
   item *itm = item_alloc(m->files[file_index]->id, offset, write_sz);
   void *found = art_search(&m->index_tree,(const unsigned char *) key, key_sz);
   if (!found)
@@ -118,10 +122,9 @@ void *schema_get_kv(schema *m, void *key, size_t key_sz)
       entry *et_ptr = (entry *)calloc(1, it->size);
       data_file_read(cur_file, it->fid,it->offset, et_ptr, it->size);
       uint32_t crc =  crc32(et_ptr->kv,et_ptr->k_sz+et_ptr->v_sz);
-      if(crc != et_ptr->crc) {
-        logi("source crc:%d,now crc:%d\n",et_ptr->crc,crc);
-      }
-      value_ptr = (char *)et_ptr+et_ptr->v_sz;
+      slog_info("source crc:%d,now crc:%d\n",et_ptr->crc,crc);
+      
+      value_ptr = (char *)et_ptr->kv+et_ptr->k_sz;
     }
   }
   return value_ptr;

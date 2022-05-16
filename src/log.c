@@ -1,258 +1,430 @@
-/*************************************************************************
-    > File Name: log.c
-  > Author:perrynzhou
-  > Mail:perrynzhou@gmail.com
-  > Created Time: Mon 28 Mar 2022 12:12:58 PM UTC
- ************************************************************************/
-
-#include <errno.h>
-#include "utils.h"
-#include "log.h"
-
-#if defined (__WIN32__) || defined (WIN32) || defined (_MSC_VER)
-#define B_RED(str)      str
-#define B_GREEN(str)    str
-#define B_YELLOW(str)   str
-#define B_BLUE(str)     str
-#define B_MAGENTA(str)  str
-#define B_CYAN(str)     str
-#define B_WHITE(str)    str
-#define RED(str)        str
-#define GREEN(str)      str
-#define YELLOW(str)     str
-#define BLUE(str)       str
-#define MAGENTA(str)    str
-#define CYAN(str)       str
-#define WHITE(str)      str
-#else
-#define FG_BLACK        30
-#define FG_RED          31
-#define FG_GREEN        32
-#define FG_YELLOW       33
-#define FG_BLUE         34
-#define FG_MAGENTA      35
-#define FG_CYAN         36
-#define FG_WHITE        37
-#define BG_BLACK        40
-#define BG_RED          41
-#define BG_GREEN        42
-#define BG_YELLOW       43
-#define BG_BLUE         44
-#define BG_MAGENTA      45
-#define BG_CYAN         46
-#define BG_WHITE        47
-#define B_RED(str)      "\033[1;31m" str "\033[0m"
-#define B_GREEN(str)    "\033[1;32m" str "\033[0m"
-#define B_YELLOW(str)   "\033[1;33m" str "\033[0m"
-#define B_BLUE(str)     "\033[1;34m" str "\033[0m"
-#define B_MAGENTA(str)  "\033[1;35m" str "\033[0m"
-#define B_CYAN(str)     "\033[1;36m" str "\033[0m"
-#define B_WHITE(str)    "\033[1;37m" str "\033[0m"
-#define RED(str)        "\033[31m" str "\033[0m"
-#define GREEN(str)      "\033[32m" str "\033[0m"
-#define YELLOW(str)     "\033[33m" str "\033[0m"
-#define BLUE(str)       "\033[34m" str "\033[0m"
-#define MAGENTA(str)    "\033[35m" str "\033[0m"
-#define CYAN(str)       "\033[36m" str "\033[0m"
-#define WHITE(str)      "\033[37m" str "\033[0m"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
 #endif
 
-#define USE_SYSLOG
-#define LOG_IOVEC_MAX (10)
-#define FILENAME_LEN (256)
-#define FILESIZE_LEN (10 * 1024 * 1024UL)
-#define LOG_BUF_SIZE (1024)
-#define LOG_TIME_SIZE (32)
-#define LOG_LEVEL_SIZE (32)
-#define LOG_TAG_SIZE (32)
-#define LOG_PNAME_SIZE (32)
-#define LOG_TEXT_SIZE (256)
-#define LOG_LEVEL_DEFAULT LOG_INFO
-#define LOG_IO_OPS
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <errno.h>
+#include <time.h>
+#include "log.h"
 
-/*
- *#define LOG_VERBOSE_ENABLE
- */
+#if !defined(__APPLE__) && !defined(DARWIN) && !defined(WIN32)
+#include <syscall.h>
+#endif
+#include <sys/time.h>
 
-#define LOG_PREFIX_MASK (0xFFFF)
-#define LOG_FUNCLINE_BIT (1 << 0)
-#define LOG_TID_BIT (1 << 1)
-#define LOG_PID_BIT (1 << 2)
-#define LOG_TIMESTAMP_BIT (1 << 3)
-#define LOG_TAG_BIT (1 << 4)
+#ifdef WIN32
+#include <windows.h>
+#endif
 
-typedef struct
+#ifndef PTHREAD_MUTEX_RECURSIVE 
+#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#endif
+
+typedef struct slog {
+    unsigned int nTdSafe:1;
+    pthread_mutex_t mutex;
+     slog_config config;
+} slog_t;
+
+typedef struct XLogCtx {
+    const char *pFormat;
+     slog_flag eFlag;
+    slog_date date;
+    uint8_t nFullColor;
+    uint8_t nNewLine;
+} slog_context_t;
+
+static slog_t g_slog;
+
+static void slog_sync_init(slog_t *pSlog)
 {
-    char *log_file;
-    int fd;
-    size_t rorate_size;
-    int log_level;
-    pthread_mutex_t log_mutex;
-    bool is_init;
-} log_t;
-static log_t g_log;
-pthread_once_t thread_once = PTHREAD_ONCE_INIT;
+    if (!pSlog->nTdSafe) return;
+    pthread_mutexattr_t mutexAttr;
 
-/* from /usr/include/sys/syslog.h */
-static const char *log_level_str[] = {
-    "ERR",
-    "WARN",
-    "INFO",
-    "DEBUG",
-};
-int log_init(log_type type, const char *file)
-{
-    if (!g_log.is_init)
+    if (pthread_mutexattr_init(&mutexAttr) ||
+        pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE) ||
+        pthread_mutex_init(&pSlog->mutex, &mutexAttr) ||
+        pthread_mutexattr_destroy(&mutexAttr))
     {
-        if (type == LOG_FILE && file != NULL)
-        {
-            g_log.log_file = strdup(file);
-            g_log.fd = open(g_log.log_file, O_RDWR | O_APPEND, 0644);
-            assert(g_log.fd != -1);
-        }
-        if (g_log.fd < 0)
-        {
-            g_log.fd = type;
-        }
-        g_log.log_level = LOG_INFO;
-        return 0;
-    }
-    return -1;
-}
-void log_set_level(int level)
-{
-    if (g_log.is_init)
-    {
-        g_log.log_level = level;
+        printf("<%s:%d> %s: [ERROR] Can not initialize mutex: %d\n", 
+            __FILE__, __LINE__, __FUNCTION__, errno);
+
+        exit(EXIT_FAILURE);
     }
 }
-static void log_get_time(char *str, int len, int flag_name)
+
+static void slog_lock(slog_t *pSlog)
 {
-    char date_fmt[20];
-    char date_ms[32];
+    if (pSlog->nTdSafe && pthread_mutex_lock(&pSlog->mutex))
+    {
+        printf("<%s:%d> %s: [ERROR] Can not lock mutex: %d\n", 
+            __FILE__, __LINE__, __FUNCTION__, errno);
+
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void slog_unlock(slog_t *pSlog)
+{
+    if (pSlog->nTdSafe && pthread_mutex_unlock(&pSlog->mutex))
+    {
+        printf("<%s:%d> %s: [ERROR] Can not unlock mutex: %d\n", 
+            __FILE__, __LINE__, __FUNCTION__, errno);
+                
+        exit(EXIT_FAILURE);
+    }
+}
+
+static const char* slog_get_tag( slog_flag eFlag)
+{
+    switch (eFlag)
+    {
+        case SLOG_NOTE: return "note";
+        case SLOG_INFO: return "info";
+        case SLOG_WARN: return "warn";
+        case SLOG_DEBUG: return "debug";
+        case SLOG_ERROR: return "error";
+        case SLOG_TRACE: return "trace";
+        case SLOG_FATAL: return "fatal";
+        default: break;
+    }
+
+    return NULL;
+}
+
+static const char* slog_get_color( slog_flag eFlag)
+{
+    switch (eFlag)
+    {
+        case SLOG_NOTE: return SLOG_COLOR_NORMAL;
+        case SLOG_INFO: return SLOG_COLOR_GREEN;
+        case SLOG_WARN: return SLOG_COLOR_YELLOW;
+        case SLOG_DEBUG: return SLOG_COLOR_BLUE;
+        case SLOG_ERROR: return SLOG_COLOR_RED;
+        case SLOG_TRACE: return SLOG_COLOR_CYAN;
+        case SLOG_FATAL: return SLOG_COLOR_MAGENTA;
+        default: break;
+    }
+
+    return SLOG_COLOR_NORMAL;
+}
+
+uint8_t slog_get_usec()
+{
     struct timeval tv;
-    struct tm now_tm;
-    int now_ms;
-    time_t now_sec;
-    gettimeofday(&tv, NULL);
-    now_sec = tv.tv_sec;
-    now_ms = tv.tv_usec / 1000;
-    localtime_r(&now_sec, &now_tm);
-
-    if (flag_name == 0)
-    {
-        strftime(date_fmt, 20, "%Y-%m-%d %H:%M:%S", &now_tm);
-        snprintf(date_ms, sizeof(date_ms), "%03d", now_ms);
-        snprintf(str, len, "[%s.%s]", date_fmt, date_ms);
-    }
-    else
-    {
-        strftime(date_fmt, 20, "%Y_%m_%d_%H_%M_%S", &now_tm);
-        snprintf(date_ms, sizeof(date_ms), "%03d", now_ms);
-        snprintf(str, len, "%s_%s.log", date_fmt, date_ms);
-    }
+    if (gettimeofday(&tv, NULL) < 0) return 0;
+    return (uint8_t)(tv.tv_usec / 10000);
 }
-static int log_write(int lvl, const char *file, int line,
-                       const char *func, const char *msg)
+
+void slog_get_date(slog_date *pDate)
 {
-    int ret = 0, i = 0;
-    struct iovec vec[LOG_IOVEC_MAX];
-    char s_time[LOG_TIME_SIZE];
-    char s_lvl[LOG_LEVEL_SIZE];
-    // char s_pname[LOG_PNAME_SIZE*2];
-    char s_pid[LOG_PNAME_SIZE];
-    char s_file[LOG_TEXT_SIZE];
-    char s_msg[LOG_BUF_SIZE];
+    struct tm timeinfo;
+    time_t rawtime = time(NULL);
+    #ifdef WIN32
+    localtime_s(&timeinfo, &rawtime);
+    #else
+    localtime_r(&rawtime, &timeinfo);
+    #endif
 
-    pthread_mutex_lock(&g_log.log_mutex);
-    log_get_time(s_time, sizeof(s_time), 0);
-
-    switch (lvl)
-    {
-    case LOG_ERR:
-        snprintf(s_lvl, sizeof(s_lvl),
-                 B_RED("[%7s]"), log_level_str[lvl]);
-        snprintf(s_msg, sizeof(s_msg), RED("%s"), msg);
-        break;
-    case LOG_WARNING:
-        snprintf(s_lvl, sizeof(s_lvl),
-                 B_YELLOW("[%7s]"), log_level_str[lvl]);
-        snprintf(s_msg, sizeof(s_msg), YELLOW("%s"), msg);
-        break;
-    case LOG_INFO:
-        snprintf(s_lvl, sizeof(s_lvl),
-                 B_GREEN("[%7s]"), log_level_str[lvl]);
-        snprintf(s_msg, sizeof(s_msg), GREEN("%s"), msg);
-        break;
-    case LOG_DEBUG:
-        snprintf(s_lvl, sizeof(s_lvl),
-                 B_WHITE("[%7s]"), log_level_str[lvl]);
-        snprintf(s_msg, sizeof(s_msg), WHITE("%s"), msg);
-        break;
-    default:
-        snprintf(s_lvl, sizeof(s_lvl),
-                 "[%7s]", log_level_str[lvl]);
-        snprintf(s_msg, sizeof(s_msg), "%s", msg);
-        break;
-    }
-
-    snprintf(s_pid, sizeof(s_pid), "[pid:%d]", getpid());
-    snprintf(s_file, sizeof(s_file), "[%s:%3d: %s] \n", file, line, func);
-
-    i = -1;
-    vec[++i].iov_base = (void *)s_time;
-    vec[i].iov_len = strlen(s_time);
-
-    vec[++i].iov_base = (void *)s_pid;
-    vec[i].iov_len = strlen(s_pid);
-
-    vec[++i].iov_base = (void *)s_lvl;
-    vec[i].iov_len = strlen(s_lvl);
-
-    vec[++i].iov_base = (void *)s_file;
-    vec[i].iov_len = strlen(s_file);
-
-    vec[++i].iov_base = (void *)s_msg;
-    vec[i].iov_len = strlen(s_msg);
-    writev(g_log.fd, (const struct iovec *)&vec, i+1);
-    fdatasync(g_log.fd);
-    pthread_mutex_unlock(&g_log.log_mutex);
-
-    return ret;
+    pDate->nYear = timeinfo.tm_year + 1900;
+    pDate->nMonth = timeinfo.tm_mon + 1;
+    pDate->nDay = timeinfo.tm_mday;
+    pDate->nHour = timeinfo.tm_hour;
+    pDate->nMin = timeinfo.tm_min;
+    pDate->nSec = timeinfo.tm_sec;
+    pDate->nUsec = slog_get_usec();
 }
 
-int log_print(int lvl, const char *file, int line, const char *func, const char *fmt, ...)
+static uint32_t slog_get_tid()
 {
-    va_list ap;
-    char buf[LOG_BUF_SIZE] = {0};
-    int n, ret;
-
-    if (!g_log.is_init)
-    {
-        log_init(LOG_STDOUT, NULL);
-        log_set_level(lvl);
-
-    }
-
-    if (lvl <LOG_ERR || lvl > LOG_DEBUG)
-    {
-        return -1;
-    }
-
-    va_start(ap, fmt);
-    n = vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-    if (n < 0)
-    {
-        return -1;
-    }
-    ret = log_write(lvl, file, line, func, buf);
-
-    return ret;
+#if defined(__APPLE__) || defined(DARWIN) || defined(WIN32)
+    return (uint32_t)pthread_self();
+#else
+    return syscall(__NR_gettid);
+#endif
 }
-void log_deinit() {
-    if(g_log.is_init) {
-        close(g_log.fd);
-        g_log.is_init=false;
+
+static void slog_create_tag(char *pOut, size_t nSize,  slog_flag eFlag, const char *pColor)
+{
+     slog_config *pCfg = &g_slog.config;
+    pOut[0] = SLOG_NUL;
+
+    const char *pTag = slog_get_tag(eFlag);
+    if (pTag == NULL) return;
+
+    if (pCfg->color_format != SLOG_COLORING_TAG) snprintf(pOut, nSize, "<%s> ", pTag);
+    else snprintf(pOut, nSize, "%s<%s>%s ", pColor, pTag, SLOG_COLOR_RESET);
+}
+
+static void slog_create_tid(char *pOut, int nSize, uint8_t n_trace_tid)
+{
+    if (!n_trace_tid) pOut[0] = SLOG_NUL;
+    else snprintf(pOut, nSize, "(%u) ", slog_get_tid());
+}
+
+static void slog_display_message(const slog_context_t *pCtx, const char *pInfo, const char *pInput)
+{
+    const char *pReset = pCtx->nFullColor ? SLOG_COLOR_RESET : SLOG_EMPTY;
+    const char *pNewLine = pCtx->nNewLine ? SLOG_NEWLINE : SLOG_EMPTY;
+    const char *pMessage = pInput != NULL ? pInput : SLOG_EMPTY;
+
+     slog_config *pCfg = &g_slog.config;
+    int nCbVal = 1;
+
+    if (pCfg->log_callback != NULL)
+    {
+        size_t nLength = 0;
+        char *pLog = NULL;
+
+        nLength += asprintf(&pLog, "%s%s%s%s", pInfo, pMessage, pReset, pNewLine);
+        if (pLog != NULL)
+        {
+            nCbVal = pCfg->log_callback(pLog, nLength, pCtx->eFlag, pCfg->p_callback_ctx);
+            free(pLog);
+        }
+    }
+
+    if (pCfg->n_to_screen && nCbVal > 0)
+    {
+        printf("%s%s%s%s", pInfo, pMessage, pReset, pNewLine);
+        if (pCfg->n_flush) fflush(stdout);
+    }
+
+    if (!pCfg->n_to_file || nCbVal < 0) return;
+    const slog_date *pDate = &pCtx->date;
+
+    char s_file_path[SLOG_PATH_MAX + SLOG_NAME_MAX + SLOG_DATE_MAX];
+    snprintf(s_file_path, sizeof(s_file_path), "%s/%s-%04d-%02d-%02d.log", 
+        pCfg->s_file_path, pCfg->s_file_name, pDate->nYear, pDate->nMonth, pDate->nDay);
+
+    FILE *pFile = fopen(s_file_path, "a");
+    if (pFile == NULL) return;
+
+    fprintf(pFile, "%s%s%s%s", pInfo, pMessage, pReset, pNewLine);
+    fclose(pFile);
+}
+
+static void slog_create_info(const slog_context_t *pCtx, char* pOut, size_t nSize)
+{
+     slog_config *pCfg = &g_slog.config;
+    const slog_date *pDate = &pCtx->date;
+
+    char sDate[SLOG_DATE_MAX + SLOG_NAME_MAX];
+    sDate[0] = SLOG_NUL;
+
+    if (pCfg->date_control == SLOG_TIME_ONLY)
+    {
+        snprintf(sDate, sizeof(sDate),
+            "%02d:%02d:%02d.%03d%s",
+            pDate->nHour,pDate->nMin,
+            pDate->nSec, pDate->nUsec,
+            pCfg->s_separator);
+    }
+    else if (pCfg->date_control == SLOG_DATE_FULL)
+    {
+        snprintf(sDate, sizeof(sDate),
+            "%04d.%02d.%02d-%02d:%02d:%02d.%03d%s",
+            pDate->nYear, pDate->nMonth,
+            pDate->nDay, pDate->nHour,
+            pDate->nMin, pDate->nSec,
+            pDate->nUsec, pCfg->s_separator);
+    }
+
+    char sTid[SLOG_TAG_MAX], sTag[SLOG_TAG_MAX];
+    const char *pColorCode = slog_get_color(pCtx->eFlag);
+    const char *pColor = pCtx->nFullColor ? pColorCode : SLOG_EMPTY;
+
+    slog_create_tid(sTid, sizeof(sTid), pCfg->n_trace_tid);
+    slog_create_tag(sTag, sizeof(sTag), pCtx->eFlag, pColorCode);
+    snprintf(pOut, nSize, "%s%s%s%s", pColor, sTid, sDate, sTag); 
+}
+
+static void slog_display_heap(const slog_context_t *pCtx, va_list args)
+{
+    size_t nBytes = 0;
+    char *pMessage = NULL;
+    char sLogInfo[SLOG_INFO_MAX];
+
+    nBytes += vasprintf(&pMessage, pCtx->pFormat, args);
+    va_end(args);
+
+    if (pMessage == NULL)
+    {
+        printf("<%s:%d> %s<error>%s %s: Can not allocate memory for input: errno(%d)\n", 
+            __FILE__, __LINE__, SLOG_COLOR_RED, SLOG_COLOR_RESET, __FUNCTION__, errno);
+
+        return;
+    }
+
+    slog_create_info(pCtx, sLogInfo, sizeof(sLogInfo));
+    slog_display_message(pCtx, sLogInfo, pMessage);
+    if (pMessage != NULL) free(pMessage);
+}
+
+static void slog_display_stack(const slog_context_t *pCtx, va_list args)
+{
+    char sMessage[SLOG_MESSAGE_MAX];
+    char sLogInfo[SLOG_INFO_MAX];
+
+    vsnprintf(sMessage, sizeof(sMessage), pCtx->pFormat, args);
+    slog_create_info(pCtx, sLogInfo, sizeof(sLogInfo));
+    slog_display_message(pCtx, sLogInfo, sMessage);
+}
+
+void slog_display( slog_flag eFlag, uint8_t nNewLine, const char *pFormat, ...)
+{
+    slog_lock(&g_slog);
+     slog_config *pCfg = &g_slog.config;
+
+    if ((SLOG_FLAGS_CHECK(g_slog.config.n_flags, eFlag)) &&
+       (g_slog.config.n_to_screen || g_slog.config.n_to_file))
+    {
+        slog_context_t ctx;
+        slog_get_date(&ctx.date);
+
+        ctx.eFlag = eFlag;
+        ctx.pFormat = pFormat;
+        ctx.nNewLine = nNewLine;
+        ctx.nFullColor = pCfg->color_format == SLOG_COLORING_FULL ? 1 : 0;
+
+        void(*slog_display_args)(const slog_context_t *pCtx, va_list args);
+        slog_display_args = pCfg->n_use_heap ? slog_display_heap : slog_display_stack;
+
+        va_list args;
+        va_start(args, pFormat);
+        slog_display_args(&ctx, args);
+        va_end(args);
+    }
+
+    slog_unlock(&g_slog);
+}
+
+size_t slog_version(char *pDest, size_t nSize, uint8_t nMin)
+{
+    size_t nLength = 0;
+
+    /* Version short */
+    if (nMin) nLength = snprintf(pDest, nSize, "%d.%d.%d", 
+        SLOG_VERSION_MAJOR, SLOG_VERSION_MINOR, SLOG_BUILD_NUM);
+
+    /* Version long */
+    else nLength = snprintf(pDest, nSize, "%d.%d build %d (%s)", 
+        SLOG_VERSION_MAJOR, SLOG_VERSION_MINOR, SLOG_BUILD_NUM, __DATE__);
+
+    return nLength;
+}
+
+void slog_config_get( slog_config *pCfg)
+{
+    slog_lock(&g_slog);
+    *pCfg = g_slog.config;
+    slog_unlock(&g_slog);
+}
+
+void slog_config_set( slog_config *pCfg)
+{
+    slog_lock(&g_slog);
+    g_slog.config = *pCfg;
+    slog_unlock(&g_slog);
+}
+
+void slog_enable( slog_flag eFlag)
+{
+    slog_lock(&g_slog);
+
+    if (!SLOG_FLAGS_CHECK(g_slog.config.n_flags, eFlag))
+        g_slog.config.n_flags |= eFlag;
+
+    slog_unlock(&g_slog);
+}
+
+void slog_disable( slog_flag eFlag)
+{
+    slog_lock(&g_slog);
+
+    if (SLOG_FLAGS_CHECK(g_slog.config.n_flags, eFlag))
+        g_slog.config.n_flags &= ~eFlag;
+
+    slog_unlock(&g_slog);
+}
+
+void slog_separator_set(const char *pFormat, ...)
+{
+    slog_lock(&g_slog);
+     slog_config *pCfg = &g_slog.config;
+
+    va_list args;
+    va_start(args, pFormat);
+
+    if (vsnprintf(pCfg->s_separator, sizeof(pCfg->s_separator), pFormat, args) <= 0)
+    {
+        pCfg->s_separator[0] = ' ';
+        pCfg->s_separator[1] = '\0';
+    }
+
+    va_end(args);
+    slog_unlock(&g_slog);
+}
+
+void slog_callback_set( slog_cb callback, void *pContext)
+{
+    slog_lock(&g_slog);
+     slog_config *pCfg = &g_slog.config;
+    pCfg->p_callback_ctx = pContext;
+    pCfg->log_callback = callback;
+    slog_unlock(&g_slog);
+}
+
+void slog_init(const char* pName, uint16_t n_flags, uint8_t nTdSafe)
+{
+    /* Set up default values */
+     slog_config *pCfg = &g_slog.config;
+    pCfg->color_format = SLOG_COLORING_TAG;
+    pCfg->date_control = SLOG_TIME_ONLY;
+    pCfg->p_callback_ctx = NULL;
+    pCfg->log_callback = NULL;
+    pCfg->s_separator[0] = ' ';
+    pCfg->s_separator[1] = '\0';
+    pCfg->s_file_path[0] = '.';
+    pCfg->s_file_path[1] = '\0';
+    pCfg->n_trace_tid = 0;
+    pCfg->n_to_screen = 1;
+    pCfg->n_use_heap = 0;
+    pCfg->n_to_file = 0;
+    pCfg->n_flush = 0;
+    pCfg->n_flags = n_flags;
+
+    const char *pFileName = (pName != NULL) ? pName : SLOG_NAME_DEFAULT;
+    snprintf(pCfg->s_file_name, sizeof(pCfg->s_file_name), "%s", pFileName);
+
+#ifdef WIN32
+    // Enable color support
+    HANDLE hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOutput, &dwMode);
+    dwMode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOutput, dwMode);
+#endif
+
+    /* Initialize mutex */
+    g_slog.nTdSafe = nTdSafe;
+    slog_sync_init(&g_slog);
+}
+
+void slog_destroy()
+{
+    g_slog.config.p_callback_ctx = NULL;
+    g_slog.config.log_callback = NULL;
+
+    if (g_slog.nTdSafe)
+    {
+        pthread_mutex_destroy(&g_slog.mutex);
+        g_slog.nTdSafe = 0;
     }
 }

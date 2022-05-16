@@ -9,7 +9,7 @@
 #include <stdatomic.h>
 #include "data_file.h"
 #include "log.h"
-static const char *data_file_fmt = "%s/%09d.data";
+static const char *data_file_fmt = "%s/%09d_%d.data";
 int data_file_change_read_only(data_file *f)
 {
   int ret = -1;

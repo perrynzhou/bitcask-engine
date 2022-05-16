@@ -14,7 +14,7 @@ LIBS    :=
 LDFLAGS :=
 DEFINES :=
 INCLUDE := -I. 
-CFLAGS  := -g -Wall -O0 $(DEFINES) $(INCLUDE)
+CFLAGS  := -g   -shared -fPIC  -Wall -O0 $(DEFINES) $(INCLUDE)
 SHARE   := -shared -fPIC -o
   
 #i think you should do anything here
