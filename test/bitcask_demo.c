@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     char key_buf[256] = {'\0'};
     snprintf((char *)&key_buf, 256, "%ld-key", keys[i]);
     size_t key_sz = strlen((char *)&key_buf);
-    int value = rand() + rand()>>3;
+    int value = rand()%64 +1;
     ret = bitcask_put(&bk, schema_name, (char *)&key_buf, key_sz, &value, sizeof(int));
     slog_info("bitcask_put ret=%d:: schema=%s,key=%s,value=%d", ret, schema_name, (char *)&key_buf,value);
   }

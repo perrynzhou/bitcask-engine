@@ -19,7 +19,18 @@ const static char *del_kv_wal_log[] = {"del_sys.wal", "del_user.wal"};
 
 static int *context_schema_traverse(void *k, void *v)
 {
+  
+  return 0;
+}
 
+int array_schema_traverse_cb(void *arg)
+{
+  char *v = (char *)arg;
+  if(v !=NULL) {
+      slog_info("array_schema_traverse_cb:schema_name=%s\n", v);
+    free(v);
+    v= NULL;
+  }
   return 0;
 }
 static context *context_load(conf *cf)
@@ -36,6 +47,14 @@ static context *context_load(conf *cf)
   }
   if (access(home, R_OK) != -1)
   {
+     array *arr = array_alloc(CONTEXT_SCHEMA_CACHE_COUNT,true);
+     if(traverse_schema_name(home,arr)!=0) {
+         
+     }
+     if(arr !=NULL && array_len(arr)>0) {
+        array_traverse(arr,array_schema_traverse_cb);
+     }
+     array_destroy(arr);
     //todo 
   }
   return ctx;
