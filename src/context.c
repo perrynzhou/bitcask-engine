@@ -22,9 +22,9 @@ static int *context_schema_traverse(void *k, void *v)
 
   return 0;
 }
-context *context_open(conf *cf)
+static context *context_load(conf *cf)
 {
-
+  context *ctx = NULL;
   if (cf == NULL)
   {
     return NULL;
@@ -34,36 +34,46 @@ context *context_open(conf *cf)
   {
     return NULL;
   }
-  if (access(home, R_OK) != 0)
+  if (access(home, R_OK) != -1)
   {
-    mkdir(home, 0666);
+    //todo 
   }
-  context *ctx = (context *)calloc(1, sizeof(*ctx));
-  assert(ctx != NULL);
-  ctx->cf = cf;
-  ctx->schema_cache = hashmap_alloc(CONTEXT_SCHEMA_CACHE_COUNT, (hashmap_hash_cb)&hash_fnv1_32, (hashmap_key_compare_cb)&memcmp);
+  return ctx;
+}
+context *context_open(conf *cf)
+{
 
-  char wal_path[256] = {'\0'};
-  snprintf((char *)&wal_path, 256, "%s/%s", home, del_kv_wal_log[SYS_WAL_LOG_INDEX]);
-  ctx->sys_wal_log_fd = open((char *)&wal_path, O_RDWR | O_CREAT | O_TRUNC);
-
-  size_t sys_schema_count = sizeof(sys_schema) / sizeof(sys_schema[0]);
-  schema *meta_schema = NULL;
-  for (size_t i = 0; i < sys_schema_count; i++)
+  context *ctx = context_load(cf);
+  if (!ctx)
   {
-    char buf[SCHEMA_BUF_SIZE] = {'\0'};
-    snprintf((char *)&buf, SCHEMA_BUF_SIZE, "%s/%s", home, sys_schema[i]);
-    if (access((char *)&buf, F_OK) != 0)
-    {
-      mkdir((char *)&buf, 0666);
-    }
+    mkdir(cf->db_home,0755);
+    ctx = (context *)calloc(1, sizeof(*ctx));
+    assert(ctx != NULL);
+    ctx->cf = cf;
+    ctx->schema_cache = hashmap_alloc(CONTEXT_SCHEMA_CACHE_COUNT, (hashmap_hash_cb)&hash_fnv1_32, (hashmap_key_compare_cb)&memcmp);
 
-    schema *sm = schema_alloc(home, sys_schema[i], cf, ctx->sys_wal_log_fd);
-    int ret = hashmap_put(ctx->schema_cache, sys_schema[i], strlen(sys_schema[i]), &sm, sizeof(schema *));
-    if (strncmp(sys_schema[i], "sys_schema", strlen(sys_schema[i])) == 0)
+    char wal_path[256] = {'\0'};
+    snprintf((char *)&wal_path, 256, "%s/%s", cf->db_home, del_kv_wal_log[SYS_WAL_LOG_INDEX]);
+    ctx->sys_wal_log_fd = open((char *)&wal_path, O_RDWR | O_CREAT | O_TRUNC);
+
+    size_t sys_schema_count = sizeof(sys_schema) / sizeof(sys_schema[0]);
+    schema *meta_schema = NULL;
+    for (size_t i = 0; i < sys_schema_count; i++)
     {
-      meta_schema = sm;
-      ctx->meta_schema = meta_schema;
+      char buf[SCHEMA_BUF_SIZE] = {'\0'};
+      snprintf((char *)&buf, SCHEMA_BUF_SIZE, "%s/%s", cf->db_home, sys_schema[i]);
+      if (access((char *)&buf, F_OK) != 0)
+      {
+        mkdir((char *)&buf, 0666);
+      }
+
+      schema *sm = schema_alloc(cf->db_home, sys_schema[i], cf, ctx->sys_wal_log_fd);
+      int ret = hashmap_put(ctx->schema_cache, sys_schema[i], strlen(sys_schema[i]), &sm, sizeof(schema *));
+      if (strncmp(sys_schema[i], "sys_schema", strlen(sys_schema[i])) == 0)
+      {
+        meta_schema = sm;
+        ctx->meta_schema = meta_schema;
+      }
     }
   }
   return ctx;

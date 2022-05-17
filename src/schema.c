@@ -84,15 +84,17 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
 
   size_t file_index = m->data_file_id;
 
+/*
   struct stat s;
   fstat(m->files[file_index]->w_fd, &s);
   size_t offset = m->files[file_index]->cur_size <=0?0:s.st_size;
-
+*/
   entry *et = entry_alloc(key, key_sz, value, value_sz);
   size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
-  data_file_write(m->files[file_index], et, write_sz);
+  size_t offset = m->files[file_index]->cur_size;
 
-
+  if(data_file_write(m->files[file_index], et, write_sz) >0 ) {
+  slog_info("offset=%ld,write_sz=%ld",offset,write_sz);
   item *itm = item_alloc(m->files[file_index]->id, offset, write_sz);
   void *found = art_search(&m->index_tree,(const unsigned char *) key, key_sz);
   if (!found)
@@ -106,6 +108,8 @@ int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value
       fsync(m->del_wal_fd);
       // update mem
       memcpy(found,itm,sizeof(item));
+  }
+
   }
   return 0;
 }
