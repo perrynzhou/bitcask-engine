@@ -19,3 +19,7 @@ $ git clone git@github.com:perrynzhou/bitcask-engine.git && cd src  && make clea
 ```shell
 $ cd test && make clean && make
 ```
+
+## 未来计划
+
+![](./doc/bitcask-todo.png)
