@@ -23,7 +23,7 @@ static int *context_schema_traverse(void *k, void *v)
   return 0;
 }
 
-int array_schema_traverse_cb(void *arg)
+int context_schema_traverse_cb(void *arg)
 {
   char *v = (char *)arg;
   if(v !=NULL) {
@@ -49,15 +49,27 @@ static context *context_load(conf *cf)
   {
      array *arr = array_alloc(CONTEXT_SCHEMA_CACHE_COUNT,true);
      if(traverse_schema_name(home,arr)!=0) {
-         
+          
      }
      if(arr !=NULL && array_len(arr)>0) {
-        array_traverse(arr,array_schema_traverse_cb);
+        array_traverse(arr,context_schema_traverse_cb);
      }
      array_destroy(arr);
     //todo 
   }
   return ctx;
+}
+inline static context *context_alloc(conf *cf) {
+    context    *ctx = (context *)calloc(1, sizeof(*ctx));
+    assert(ctx != NULL);
+    ctx->cf = cf;
+    ctx->schema_cache = hashmap_alloc(CONTEXT_SCHEMA_CACHE_COUNT, (hashmap_hash_cb)&hash_fnv1_32, (hashmap_key_compare_cb)&memcmp);
+
+    char wal_path[256] = {'\0'};
+    snprintf((char *)&wal_path, 256, "%s/%s", cf->db_home, del_kv_wal_log[SYS_WAL_LOG_INDEX]);
+    
+    ctx->sys_wal_log_fd = open((char *)&wal_path, O_RDWR | O_CREAT | O_APPEND);
+    return ctx;
 }
 context *context_open(conf *cf)
 {
@@ -66,14 +78,7 @@ context *context_open(conf *cf)
   if (!ctx)
   {
     mkdir(cf->db_home,0755);
-    ctx = (context *)calloc(1, sizeof(*ctx));
-    assert(ctx != NULL);
-    ctx->cf = cf;
-    ctx->schema_cache = hashmap_alloc(CONTEXT_SCHEMA_CACHE_COUNT, (hashmap_hash_cb)&hash_fnv1_32, (hashmap_key_compare_cb)&memcmp);
-
-    char wal_path[256] = {'\0'};
-    snprintf((char *)&wal_path, 256, "%s/%s", cf->db_home, del_kv_wal_log[SYS_WAL_LOG_INDEX]);
-    ctx->sys_wal_log_fd = open((char *)&wal_path, O_RDWR | O_CREAT | O_TRUNC);
+    ctx = context_alloc(cf);
 
     size_t sys_schema_count = sizeof(sys_schema) / sizeof(sys_schema[0]);
     schema *meta_schema = NULL;

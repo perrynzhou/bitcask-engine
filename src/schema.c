@@ -67,6 +67,13 @@ void schema_destroy(schema *m)
   remove((char *)&schema_path);
 }
 
+schema *schema_load(const char *db_home,const char *name) {
+  schema *sa = NULL;
+  if(db_home && name) {
+
+  }
+  return sa;
+}
 int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value_sz)
 {
   if (m->files[m->meta->data_file_cnt - 1]->cur_size >= m->cf->max_data_file_size)

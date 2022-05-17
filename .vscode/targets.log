@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Tue May 17 08:12:22 2022
+# Make data base, printed on Tue May 17 09:05:04 2022
 
 # Variables
 
@@ -93,7 +93,7 @@ LESSCLOSE = /usr/bin/lesspipe %s %s
 # environment
 LOGNAME = perrynzhou
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # automatic
 +F = $(notdir $+)
 # environment
@@ -227,6 +227,6 @@ GNUmakefile:
 # strcache performance: lookups = 19 / hit rate = 15%
 # hash-table stats:
 # Load=16/8192=0%, Rehash=0, Collisions=1/19=5%
-# Finished Make data base on Tue May 17 08:12:22 2022
+# Finished Make data base on Tue May 17 09:05:04 2022
 
  
