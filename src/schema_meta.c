@@ -15,8 +15,8 @@ schema_meta *schema_meta_alloc(const char *name)
   if (name)
   {
     size_t name_len = strlen(name);
-    size_t meta_size = sizeof(schema_meta) + name_len;
-    smeta = (schema_meta *)calloc(1, sizeof(schema_meta) + name_len + 1);
+    size_t meta_size = sizeof(schema_meta) + name_len+1;
+    smeta = (schema_meta *)calloc(1, meta_size);
     assert(smeta != NULL);
     smeta->kv_count = ATOMIC_VAR_INIT(0);
     smeta->data_file_cnt = ATOMIC_VAR_INIT(0);

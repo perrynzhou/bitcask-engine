@@ -39,7 +39,7 @@
 #include <sys/time.h>
 #include <sys/param.h>
 #include <stdatomic.h>
-
+#include "array.h"
 #define container_of(ptr, type, member) ({                      \
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
         (type *)( (char *)__mptr - offsetof(type,member) );})
@@ -50,4 +50,5 @@ typedef int (*hashmap_key_compare_cb)(void *,void *,size_t);
 typedef void (*hashmap_free_cb)(void *);
 typedef int (*key_compare)(void *,void *,size_t);
 
+int traverse_schema_name(const char *db_home,array *arr);
 #endif

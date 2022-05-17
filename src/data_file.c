@@ -51,8 +51,10 @@ ssize_t data_file_write(data_file *f, void *data, size_t len)
   ssize_t ret = -1;
   if (f->w_fd != -1 && !f->read_only && len < f->max_kv_size)
   {
-    f->cur_size += len;
+
+    atomic_fetch_add(&f->cur_size,len);
     ret = write(f->w_fd, data, len);
+    fsync(f->w_fd);
   }
   return ret;
 }
@@ -62,6 +64,7 @@ ssize_t data_file_read(data_file *f, int id, size_t offset, void *buf, size_t le
   if (f->r_fd != -1)
   {
 
+    /*
     char filename[256] = {'\0'};
     int flag = (f->id == id) ? 1 : 0;
     snprintf((char *)&filename, 256, data_file_fmt, f->parent_path, id, flag);
@@ -69,6 +72,9 @@ ssize_t data_file_read(data_file *f, int id, size_t offset, void *buf, size_t le
     lseek(r_fd, offset, SEEK_SET);
     ret = read(r_fd, buf, len);
     close(r_fd);
+    */
+     lseek(f->r_fd, offset, SEEK_SET);
+    ret = read(f->r_fd, buf, len);
   }
   return ret;
 }
