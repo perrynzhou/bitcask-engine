@@ -6,8 +6,8 @@
  ************************************************************************/
 
 
-#ifndef _array_H
-#define _array_H
+#ifndef _ARRAY_H
+#define _ARRAY_H
 #include <stdint.h>
 #include <stdatomic.h>
 #include <stdbool.h>
