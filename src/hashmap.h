@@ -6,7 +6,16 @@
  ************************************************************************/
 #ifndef _HASHMAP_H
 #define _HASHMAP_H
-#include "utils.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+typedef uint32_t (*hashmap_hash_cb)(void *, size_t);
+typedef int (*hashmap_traverse_cb)(void *,void *);
+typedef int (*hashmap_key_compare_cb)(void *,void *,size_t);
+
+typedef void (*hashmap_free_cb)(void *);
+typedef int (*key_compare)(void *,void *,size_t);
 typedef struct hashmap
 {
   size_t max_count;

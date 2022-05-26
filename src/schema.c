@@ -7,47 +7,141 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
 #include "schema.h"
-#include "entry.h"
-#include "item.h"
+#include "kv_value.h"
+#include "kv_index.h"
 #include "log.h"
+#include "utils.h"
+#include "schema_meta.h"
+#include "art.h"
 #define SCHEMA_DATA_FILE_MIN_LEN (64)
-schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal_fd)
+
+int schema_add_data_file(schema *m, int fid)
+{
+  int ret = -1;
+  if (m && fid >= 0)
+  {
+    if (fid <= 0)
+    {
+      m->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
+    }
+    if (fid > SCHEMA_DATA_FILE_MIN_LEN)
+    {
+      m->files = (data_file **)realloc(m->files, SCHEMA_DATA_FILE_MIN_LEN * 2);
+    }
+    //  schema_data_home
+    conf *cf = m->cf;
+    data_file *cur_data_file = data_file_alloc(m->data_home, fid, cf);
+    m->files[m->fid] = cur_data_file;
+    atomic_fetch_add(&m->meta->file_cnt, 1);
+    atomic_fetch_add(&m->fid, 1);
+    ret = 0;
+  }
+  return ret;
+}
+
+int schema_drop_data_file(schema *m, int index)
+{
+  int ret = -1;
+  if (m && index >= 0)
+  {
+    struct stat st;
+    char data_file_path[256] = {'\0'};
+    snprintf((char *)&data_file_path, 256, "%s/%s/%09d.data", m->data_home, m->meta->name, index);
+    ret = stat((char *)&data_file_path, &st);
+    if (!ret)
+    {
+      ret = remove((char *)&data_file_path);
+    }
+  }
+  return 0;
+}
+
+schema *schema_alloc_from_meta(schema_meta *m, conf *cf)
 {
   schema *s = NULL;
-  if (name)
+  if (m)
+  {
+    s = schema_alloc(cf->db_home, m->name, cf);
+
+    for (size_t i = 0; i < m->file_cnt; i++)
+    {
+      schema_add_data_file(s, i);
+    }
+  }
+  return s;
+}
+schema *schema_load_from_file(const char *path, void *ctx1, void *ctx2, schema_load_cb cb)
+{
+  schema *res = NULL;
+  if (path)
+  {
+    struct stat st;
+    stat(path, &st);
+    res = (schema *)calloc(1, sizeof(schema));
+    assert(res != NULL);
+    int fd = open(path, O_RDONLY);
+    assert(fd != -1);
+    int i = 0;
+    size_t fsz = st.st_size;
+    while (fsz > 0)
+    {
+      schema_meta tmp;
+      int ret = read(fd, &tmp, sizeof(tmp));
+      if (ret <= 0)
+      {
+        break;
+      }
+      if (tmp.active)
+      {
+
+        kv_index *idx = kv_index_alloc(0, i * sizeof(tmp), sizeof(tmp));
+        char *name = (char *)tmp.name;
+        art_insert(&res->index_tree, (const unsigned char *)name, strlen(name), idx);
+      }
+      if (ctx1 && ctx2 && cb)
+      {
+        schema_meta *meta = (schema_meta *)calloc(1, sizeof(*meta));
+        cb(ctx1, ctx2, meta);
+      }
+    }
+  }
+  return res;
+}
+schema *schema_alloc(const char *db_home, const char *name, conf *cf)
+{
+  schema *s = NULL;
+  if (db_home && name)
   {
 
     s = (schema *)calloc(1, sizeof(schema));
     assert(s != NULL);
-    s->meta = schema_meta_alloc(name);
+    s->meta = schema_meta_alloc();
+    schema_meta_init(s->meta, 0, 0, 1, 1, name);
     assert(s->meta != NULL);
     char schema_path[256] = {'\0'};
     snprintf((char *)&schema_path, 256, "%s/%s", db_home, name);
+    s->data_home = strdup((char *)&schema_path);
+
     if (access((char *)&schema_path, F_OK) != 0)
     {
       mkdir((char *)&schema_path, 0755);
     }
-     
     art_tree_init(&s->index_tree);
     s->cf = cf;
-    s->del_wal_fd =del_wal_fd;
-    s->db_home = strdup(db_home);
-    data_file *cur_data_file = data_file_alloc((char *)&schema_path,0, cf->max_key_size, cf->max_value_size, cf->max_data_file_size);
-    s->files = (data_file **)calloc(1, sizeof(data_file *) * SCHEMA_DATA_FILE_MIN_LEN);
-    s->files[s->data_file_id] = cur_data_file;
-    atomic_fetch_add(&s->meta->data_file_cnt,1);
+    s->fid = 0;
   }
   return s;
 }
-void schema_close(schema *m)
+void schema_close(schema *s)
 {
-  if (m)
+  if (s)
   {
-    for (size_t i = 0; i < m->meta->data_file_cnt; i++)
+    for (size_t i = 0; i < s->meta->file_cnt; i++)
     {
 
-      data_file *d = m->files[i];
+      data_file *d = s->files[i];
       if (d->r_fd != -1)
       {
         close(d->r_fd);
@@ -59,98 +153,90 @@ void schema_close(schema *m)
     }
   }
 }
-void schema_destroy(schema *m)
+inline static int schema_drop(schema *s)
 {
-  schema_close(m);
-  char schema_path[256] = {'\0'};
-  snprintf((char *)&schema_path, 256, "%s/%s", m->db_home, (char *)&m->meta->name);
-  remove((char *)&schema_path);
-}
-
-schema *schema_load(const char *db_home,const char *name) {
-  schema *sa = NULL;
-  if(db_home && name) {
-
-  }
-  return sa;
-}
-int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value_sz)
-{
-  if (m->files[m->meta->data_file_cnt - 1]->cur_size >= m->cf->max_data_file_size)
+  for (size_t i = 0; i < s->meta->file_cnt; i++)
   {
-    pthread_mutex_lock(&m->lock);
-    data_file_change_read_only(m->files[m->data_file_id - 1]);
-    char parent_path[256] = {'\0'};
-    snprintf((char *)&parent_path,256,"%s/%s",m->db_home,(char *)&m->meta->name);
-    data_file *new_file = data_file_alloc((char *)&parent_path,m->data_file_id, m->cf->max_key_size, m->cf->max_value_size, m->cf->max_data_file_size);
-    m->files[m->data_file_id] = new_file;
-    atomic_fetch_add(&m->data_file_id,1);
-    atomic_fetch_add(&m->meta->data_file_cnt,1);
-    pthread_mutex_unlock(&m->lock);
-  }
-
-  size_t file_index = m->data_file_id;
-
-/*
-  struct stat s;
-  fstat(m->files[file_index]->w_fd, &s);
-  size_t offset = m->files[file_index]->cur_size <=0?0:s.st_size;
-*/
-  entry *et = entry_alloc(key, key_sz, value, value_sz);
-  size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
-  size_t offset = m->files[file_index]->cur_size;
-
-  if(data_file_write(m->files[file_index], et, write_sz) >0 ) {
-  slog_info("offset=%ld,write_sz=%ld",offset,write_sz);
-  item *itm = item_alloc(m->files[file_index]->id, offset, write_sz);
-  void *found = art_search(&m->index_tree,(const unsigned char *) key, key_sz);
-  if (!found)
-  {
-    art_insert(&m->index_tree, (const unsigned char *)key, key_sz, itm);
-    atomic_fetch_add(&m->meta->kv_count,1);
-  }else {
-      // save invalid k/v
-      item *it = (item *)found;
-      write(m->del_wal_fd,(void *)it,sizeof(item));
-      fsync(m->del_wal_fd);
-      // update mem
-      memcpy(found,itm,sizeof(item));
-  }
-
+    char buf[256] = {'\0'};
+    snprintf((char *)&buf, 256, "%s/%09ld.data", s->data_home, i);
+    slog_info("remove %s,data_file=%s", s->meta->name, (char *)&buf);
+    remove((char *)&buf);
   }
   return 0;
 }
-void *schema_get_kv(schema *m, void *key, size_t key_sz)
+void schema_destroy(schema *sch)
 {
-  void  *value_ptr = NULL;
-  if (m && key)
+
+  schema_drop(sch);
+  schema_close(sch);
+}
+
+int schema_put_kv(schema *sch, void *key, size_t key_sz, void *value, size_t value_sz)
+{
+  if (sch->files[sch->meta->file_cnt - 1]->cur_size >= sch->cf->max_data_file_size)
   {
-    void *found = art_search(&m->index_tree, (const unsigned char *)key, key_sz);
+    pthread_mutex_lock(&sch->lock);
+    schema_add_data_file(sch, sch->fid);
+    pthread_mutex_unlock(&sch->lock);
+  }
+
+  size_t cur_file_index = sch->fid - 1;
+  data_file *cur_file = sch->files[cur_file_index];
+  kv_value *et = kv_value_alloc(key, key_sz, value, value_sz);
+  size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
+  size_t offset = sch->files[cur_file_index]->cur_size;
+
+  if (data_file_write(sch->files[cur_file_index], et, write_sz) > 0)
+  {
+    slog_info("offset=%ld,write_sz=%ld", offset, write_sz);
+
+    void *found = art_search(&sch->index_tree, (const unsigned char *)key, key_sz);
+    if (!found)
+    {
+      kv_index *idx = kv_index_alloc(cur_file->fid, offset, write_sz);
+      art_insert(&sch->index_tree, (const unsigned char *)key, key_sz, idx);
+      atomic_fetch_add(&sch->meta->kv_count, 1);
+    }
+    else
+    {
+      kv_index tmp_idx;
+      kv_index_init(&tmp_idx, cur_file->fid, offset, write_sz);
+      kv_index *idx = (kv_index *)found;
+      memcpy(idx, &tmp_idx, sizeof(kv_index));
+    }
+  }
+  return 0;
+}
+void *schema_get_kv(schema *sch, void *key, size_t key_sz)
+{
+  void *value_ptr = NULL;
+  if (sch && key)
+  {
+    void *found = art_search(&sch->index_tree, (const unsigned char *)key, key_sz);
     if (found)
     {
-      item *it = (item *)found;
-      data_file *cur_file = m->files[it->fid];
-      entry *et_ptr = (entry *)calloc(1, it->size);
-      data_file_read(cur_file, it->fid,it->offset, et_ptr, it->size);
-      uint32_t crc =  crc32(et_ptr->kv,et_ptr->k_sz+et_ptr->v_sz);
-      slog_info("source crc:%d,now crc:%d\n",et_ptr->crc,crc);
-      
-      value_ptr = (char *)et_ptr->kv+et_ptr->k_sz;
+      kv_index *idx = (kv_index *)found;
+      data_file *cur_file = sch->files[idx->fid];
+      kv_value *value = (kv_value *)calloc(1, idx->size);
+      data_file_read(cur_file, idx->offset, value, idx->size);
+      uint32_t crc = crc32(value->kv, value->k_sz + value->v_sz);
+      slog_info("source crc:%d,now crc:%d\n", value->crc, crc);
+      value_ptr = (char *)value->kv + value->k_sz;
     }
   }
   return value_ptr;
 }
 
-int schema_del_kv(schema *m, void *key, size_t key_sz) {
+int schema_del_kv(schema *sch, void *key, size_t key_sz)
+{
   int ret = -1;
-  if (m && key)
+  if (sch && key)
   {
-    void *found = art_search(&m->index_tree, (const unsigned char *)key, key_sz);
+    void *found = art_search(&sch->index_tree, (const unsigned char *)key, key_sz);
     if (found)
     {
-      item *it = (item *)found;
-      write(m->del_wal_fd,(void *)it,sizeof(item));
-      fsync(m->del_wal_fd);
+      kv_index *it = (kv_index *)found;
+      art_delete(&sch->index_tree, key, key_sz);
       ret = 0;
     }
   }

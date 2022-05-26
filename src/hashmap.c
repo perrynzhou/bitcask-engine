@@ -9,6 +9,9 @@
 #define _HASH_MAP_H
 #include "hashmap.h"
 #include <stdatomic.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 typedef struct member_pair
 {
   void *key;

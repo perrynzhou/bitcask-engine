@@ -13,19 +13,25 @@
 #include "conf.h"
 #include <stdatomic.h>
 #include "schema_meta.h"
+
 typedef struct schema
 {
-  char *db_home;
+  char *data_home;
   schema_meta *meta;
-  _Atomic(uint32_t) data_file_id;
   data_file **files;
   art_tree index_tree;
+  _Atomic(uint32_t) fid;
   conf *cf;
-  int   del_wal_fd;
   pthread_mutex_t lock;
 } schema;
-schema *schema_alloc(const char *db_home, const char *name, conf *cf,int del_wal_fd);
-schema *schema_load(const char *db_home,const char *name);
+
+typedef int (*schema_load_cb)(void *ctx1, void *ctx2, void *data);
+schema *schema_alloc(const char *db_home, const char *name, conf *cf);
+int schema_add_data_file(schema *m, int fid);
+int schema_drop_data_file(schema *m, int fid);
+schema *schema_load_from_file(const char *path, void *ctx1, void *ctx2, schema_load_cb cb);
+schema *schema_alloc_from_meta(schema_meta *m, conf *cf);
+int schema_create(schema *m);
 int schema_put_kv(schema *m, void *key, size_t key_sz, void *value, size_t value_sz);
 void *schema_get_kv(schema *m, void *key, size_t key_sz);
 int schema_del_kv(schema *m, void *key, size_t key_sz);

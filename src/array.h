@@ -24,11 +24,12 @@ typedef struct array
 array *array_alloc(size_t max_count, bool auto_expand);
 int array_init(array *sk, size_t max_count, bool auto_expand);
 int array_add(array *sk, void *data,size_t index);
+int array_push_back(array *sk,void *data);
 void *array_del(array *sk,size_t index);
 void array_deinit(array *sk);
 void array_destroy(array *sk);
 int array_traverse(array *sk, array_traverse_cb traverse_cb);
-
+void *array_value(array *sk,size_t index);
 
 inline static size_t array_len(array *sk)
 {
