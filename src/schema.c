@@ -14,8 +14,10 @@
 #include "log.h"
 #include "utils.h"
 #include "schema_meta.h"
+#include "meta.h"
 #include "art.h"
 #include "crc.h"
+#include "art.h"
 #define SCHEMA_DATA_FILE_MIN_LEN (64)
 
 int schema_add_data_file(schema *m, int fid)
@@ -42,6 +44,63 @@ int schema_add_data_file(schema *m, int fid)
   return ret;
 }
 
+int load_schema_data_from_file(schema *sch, void *ctx1, void *ctx2, schema_load_cb cb)
+{
+  int ret = -1;
+  if(sch !=NULL) {
+     for(uint32_t i=0;i<sch->fid;i++) {
+       char fd_path[256] = {'\0'};
+       char *fd_path_ptr = (char *)&fd_path;
+       snprintf(fd_path_ptr,256,"%s/%09d.data",sch->data_home,i);
+       struct stat st;
+       if(stat(fd_path_ptr,&st)!=0){
+         slog_warn("%s ,fd = %s not exists",sch->meta->name,fd_path_ptr);
+          continue;
+       }
+       bool is_first = false;
+       int fd = open(fd_path_ptr,O_RDONLY);
+       assert(fd !=-1);
+       size_t fd_sz = st.st_size;
+       conf *cf = (conf *)ctx2;
+       size_t kv_max_size = cf->max_key_size+cf->max_value_size;
+       char  *kv_max_buffer = (char *)calloc(1,kv_max_size);
+       char   *tmp_key_buffer = (char *)calloc(1,cf->max_key_size+1);
+       while(fd_sz>0) {
+          kv_value tmp;
+          int f_rn = read(fd,&tmp,sizeof(tmp));
+          if(f_rn <=0) {
+            break;
+          }
+          int s_rn = read(fd,kv_max_buffer,kv_max_size);
+          if(s_rn <=0) {
+            break;
+          }
+          size_t rn = f_rn+s_rn+sizeof(tmp);
+          size_t offset = 0;
+          if(!is_first) {
+            is_first = true;
+          }else {
+             offset = rn;
+          }
+          kv_index *idx = kv_index_alloc(i,offset,rn);
+          memcpy(tmp_key_buffer,kv_max_buffer,tmp.k_sz);
+          art_insert(&sch->index_tree,(const unsigned char *)tmp_key_buffer,tmp.k_sz,idx);
+          memset(kv_max_buffer,0,kv_max_size);
+          
+          fd_sz = fd_sz - rn;
+       }
+       if(kv_max_buffer !=NULL)
+       {
+         free(kv_max_buffer);
+       }
+       if(fd !=-1) 
+       {
+         close(fd);
+       }
+     }
+  }
+  return ret;
+}
 int schema_drop_data_file(schema *m, int index)
 {
   int ret = -1;
@@ -73,39 +132,57 @@ schema *schema_alloc_from_meta(schema_meta *m, conf *cf)
   }
   return s;
 }
-schema *schema_load_from_file(const char *path, void *ctx1, void *ctx2, schema_load_cb cb)
+schema *load_schema_meta_from_file(const char *path, void *ctx1,void *ctx2, schema_load_cb cb)
 {
   schema *res = NULL;
   if (path)
   {
     struct stat st;
     stat(path, &st);
-    res = (schema *)calloc(1, sizeof(schema));
+
+    conf *cf = (conf *)ctx2;
+    res=schema_alloc(cf->db_home,sys_schema[SYS_SCHEMA_META_INDEX],cf);
     assert(res != NULL);
+
+    schema_add_data_file(res,0);
     int fd = open(path, O_RDONLY);
     assert(fd != -1);
     int i = 0;
     size_t fsz = st.st_size;
+    size_t rn = sizeof(kv_value)+sizeof(schema_meta);
+    kv_value *val = (kv_value *)calloc(1,rn);
     while (fsz > 0)
     {
-      schema_meta tmp;
-      int ret = read(fd, &tmp, sizeof(tmp));
+      
+      int ret = read(fd, val, rn);
       if (ret <= 0)
       {
         break;
       }
-      if (tmp.active)
+      schema_meta *tmp = (schema_meta *)val->kv;
+      if (tmp->active)
       {
-
-        kv_index *idx = kv_index_alloc(0, i * sizeof(tmp), sizeof(tmp));
-        char *name = (char *)tmp.name;
+      
+        size_t  offset = i *rn;
+        kv_index *idx = kv_index_alloc(0, offset, sizeof(*tmp));
+        char *name = (char *)tmp->name;
         art_insert(&res->index_tree, (const unsigned char *)name, strlen(name), idx);
-      }
+      
       if (ctx1 && ctx2 && cb)
       {
-        schema_meta *meta = (schema_meta *)calloc(1, sizeof(*meta));
-        cb(ctx1, ctx2, meta);
+        cb(ctx1, ctx2, tmp);
       }
+      }
+
+      fsz -= rn;
+      i++;
+    }
+    if(fd !=-1) {
+      close(fd);
+    }
+    if(val !=NULL) 
+    {
+      free(val);
     }
   }
   return res;
@@ -183,14 +260,19 @@ int schema_put_kv(schema *sch, void *key, size_t key_sz, void *value, size_t val
 
   size_t cur_file_index = sch->fid - 1;
   data_file *cur_file = sch->files[cur_file_index];
-  kv_value *val = kv_value_alloc(key, key_sz, value, value_sz);
+   kv_value *val = NULL;
+  if(strcmp((char *)&sch->meta->name,sys_schema[SYS_SCHEMA_META_INDEX])!=0) {
+     val = kv_value_alloc(key, key_sz, value, value_sz);
+  }else {
+    // just save schema_meta info on disk
+     val = kv_value_alloc(NULL, 0, value, value_sz);
+  }
   size_t write_sz = sizeof(*val) + val->k_sz + val->v_sz;
   size_t offset = sch->files[cur_file_index]->cur_size;
 
   if (data_file_write(sch->files[cur_file_index], val, write_sz) > 0)
   {
     slog_info("offset=%ld,write_sz=%ld", offset, write_sz);
-
     void *found = art_search(&sch->index_tree, (const unsigned char *)key, key_sz);
     if (!found)
     {
