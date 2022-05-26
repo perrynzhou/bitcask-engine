@@ -54,7 +54,7 @@ inline static context *context_alloc(conf *cf)
   ctx->schema_cache = hashmap_alloc(CONTEXT_SCHEMA_CACHE_COUNT, (hashmap_hash_cb)&hash_fnv1_32, (hashmap_key_compare_cb)&memcmp);
   return ctx;
 }
-int load_schema_cb(void *ctx1, void *ctx2, void *data)
+int load_schema_meta_from_file_cb(void *ctx1, void *ctx2, void *data)
 {
   int ret = -1;
   if (ctx1 && ctx2 && data)
@@ -100,8 +100,8 @@ context *context_open(conf *cf)
   else
   {
     array *arr = array_alloc(4, true);
-    schema *s_meta = schema_load_from_file((char *)&tmp_buf, arr, cf, load_schema_cb);
-    hashmap_put(ctx->schema_cache, (char *)&s_meta->meta->name, strlen((char *)&s_meta->meta->name), &s_meta, sizeof(void **));
+    schema *meta_schema = load_schema_meta_from_file((char *)&tmp_buf, arr, cf, load_schema_meta_from_file_cb);
+    hashmap_put(ctx->schema_cache, (char *)&meta_schema->meta->name, strlen((char *)&meta_schema->meta->name), &meta_schema, sizeof(void **));
     if (array_len(arr) > 0)
     {
       for (size_t i = 0; i < array_len(arr); i++)
@@ -143,10 +143,10 @@ int context_put_schema(context *ctx, char *schema_name)
     assert(new_schema != NULL);
     schema_add_data_file(new_schema, 0);
     hashmap_put(ctx->schema_cache, schema_name, key_len, &new_schema, sizeof(void **));
-    schema *s = context_fetch_meta_schema(ctx);
-    if (s)
+    schema *meta_schema = context_fetch_meta_schema(ctx);
+    if (meta_schema)
     {
-      ret = schema_put_kv(s, schema_name, key_len + 1, new_schema->meta, sizeof(schema_meta));
+      ret = schema_put_kv(meta_schema, schema_name, key_len + 1, new_schema->meta, sizeof(schema_meta));
     }
   }
   return ret;
