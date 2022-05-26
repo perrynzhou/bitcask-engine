@@ -49,6 +49,19 @@ int array_init(array *sk, size_t max_count, bool auto_expand)
   }
   return -1;
 }
+void *array_value(array *sk,size_t index) {
+  if(sk && index < sk->max_count) {
+    return  sk->ptr[index];
+  }
+  return NULL;
+}
+int array_push_back(array *sk,void *data) {
+  int ret = -1;
+  if(sk && data) {
+    ret =array_add(sk,data,array_len(sk));
+  }
+  return ret;
+}
 int array_add(array *sk, void *data, size_t index)
 {
   if (sk != NULL && data != NULL && index < sk->max_count)

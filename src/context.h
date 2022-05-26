@@ -10,15 +10,10 @@
 #include "hashmap.h"
 #include "schema.h"
 #include "conf.h"
-#define SYS_WAL_LOG_INDEX 0
-#define USER_WAL_LOG_INDEX 1
 
 typedef struct context {
   conf  *cf;
   hashmap  *schema_cache;
-
-  schema   *meta_schema;
-  int      sys_wal_log_fd;
 }context;
 context *context_open(conf *cf);
 int context_put_schema(context *ctx, char *schema_name);
