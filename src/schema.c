@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "schema_meta.h"
 #include "art.h"
+#include "crc.h"
 #define SCHEMA_DATA_FILE_MIN_LEN (64)
 
 int schema_add_data_file(schema *m, int fid)
@@ -182,11 +183,11 @@ int schema_put_kv(schema *sch, void *key, size_t key_sz, void *value, size_t val
 
   size_t cur_file_index = sch->fid - 1;
   data_file *cur_file = sch->files[cur_file_index];
-  kv_value *et = kv_value_alloc(key, key_sz, value, value_sz);
-  size_t write_sz = sizeof(*et) + et->k_sz + et->v_sz;
+  kv_value *val = kv_value_alloc(key, key_sz, value, value_sz);
+  size_t write_sz = sizeof(*val) + val->k_sz + val->v_sz;
   size_t offset = sch->files[cur_file_index]->cur_size;
 
-  if (data_file_write(sch->files[cur_file_index], et, write_sz) > 0)
+  if (data_file_write(sch->files[cur_file_index], val, write_sz) > 0)
   {
     slog_info("offset=%ld,write_sz=%ld", offset, write_sz);
 
@@ -235,7 +236,6 @@ int schema_del_kv(schema *sch, void *key, size_t key_sz)
     void *found = art_search(&sch->index_tree, (const unsigned char *)key, key_sz);
     if (found)
     {
-      kv_index *it = (kv_index *)found;
       art_delete(&sch->index_tree, key, key_sz);
       ret = 0;
     }

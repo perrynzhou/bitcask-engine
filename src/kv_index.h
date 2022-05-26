@@ -15,34 +15,7 @@ typedef struct kv_index
    size_t size;
    uint8_t active : 1;
 } kv_index;
-int kv_index_init(kv_index *idx, uint32_t fid, int64_t offset, size_t size)
-{
-   int ret = -1;
-   if (idx)
-   {
-      idx->fid = fid;
-      idx->offset = offset;
-      idx->size = size;
-      idx->active = 1;
-   }
-   return ret;
-}
-kv_index *kv_index_alloc(uint32_t fid, int64_t offset, size_t size)
-{
-   kv_index *it = (kv_index *)calloc(1, sizeof(kv_index));
-   assert(it != NULL);
-   it->fid = fid;
-   it->offset = offset;
-   it->size = size;
-   it->active = 1;
-   return it;
-}
-
-void kv_index_destroy(kv_index *it)
-{
-   if (it)
-   {
-      free(it);
-   }
-}
+int kv_index_init(kv_index *idx, uint32_t fid, int64_t offset, size_t size);
+kv_index *kv_index_alloc(uint32_t fid, int64_t offset, size_t size);
+void kv_index_destroy(kv_index *it);
 #endif

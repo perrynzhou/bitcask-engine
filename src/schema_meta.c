@@ -14,8 +14,6 @@ int schema_meta_init(schema_meta *m,uint64_t bytes,uint64_t count,uint8_t active
   int ret = -1;
   if(m) {
     size_t name_len = strlen(name);
-    m = (schema_meta *)calloc(1, sizeof(schema_meta));
-    assert(m != NULL);
     m->kv_count = bytes;
     m->file_cnt = count;
     m->active = active;
